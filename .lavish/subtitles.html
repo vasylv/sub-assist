@@ -1,0 +1,1308 @@
+<!doctype html>
+<html lang="en" data-theme="luxury">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EN Hint — how subtitles get in</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/daisyui.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/themes.css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :where(.grid, .flex) > * { min-width: 0; }
+  :where(p, h1, h2, h3, h4, li, dd, td, th, .badge) { overflow-wrap: anywhere; }
+  :where(img, svg, video, canvas) { max-width: 100%; height: auto; }
+  body { background: var(--color-base-100); color: var(--color-base-content); }
+
+  .fig { width: 100%; height: auto; display: block; }
+  .fig text { font-family: ui-sans-serif, system-ui, sans-serif; }
+  .fig .box { fill: var(--color-base-200); stroke: var(--color-base-content); stroke-opacity: .22; }
+  .fig .box-hi { fill: var(--color-primary); fill-opacity: .13; stroke: var(--color-primary); stroke-opacity: .8; }
+  .fig .box-warn { fill: var(--color-warning); fill-opacity: .12; stroke: var(--color-warning); stroke-opacity: .7; }
+  .fig .box-mute { fill: var(--color-base-300); fill-opacity: .5; stroke: var(--color-base-content); stroke-opacity: .15; }
+  .fig .t { fill: var(--color-base-content); font-size: 14px; font-weight: 600; }
+  .fig .t-sm { fill: var(--color-base-content); fill-opacity: .68; font-size: 11.5px; font-weight: 400; }
+  .fig .t-mono { fill: var(--color-base-content); fill-opacity: .82; font-size: 11.5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .fig .t-key { fill: var(--color-primary); font-size: 12px; font-weight: 700; letter-spacing: .06em; }
+  .fig .t-warn { fill: var(--color-warning); font-size: 11.5px; font-weight: 600; }
+  .fig .edge { stroke: var(--color-base-content); stroke-opacity: .45; fill: none; stroke-width: 1.6; }
+  .fig .edge-hi { stroke: var(--color-primary); stroke-opacity: .9; fill: none; stroke-width: 2; }
+  .fig .edge-dash { stroke: var(--color-base-content); stroke-opacity: .3; fill: none; stroke-width: 1.4; stroke-dasharray: 5 4; }
+  .fig .edge-bad { stroke: var(--color-error); stroke-opacity: .8; fill: none; stroke-width: 1.8; stroke-dasharray: 5 4; }
+
+  .rule { height: 1px; background: color-mix(in oklab, var(--color-base-content) 12%, transparent); }
+  .anchor-h { scroll-margin-top: 1rem; }
+  .codewrap { border-radius: .75rem; overflow: hidden; border: 1px solid color-mix(in oklab, var(--color-base-content) 14%, transparent); }
+</style>
+</head>
+<body class="min-h-screen">
+
+<div class="mx-auto max-w-5xl px-5 py-10 md:py-14">
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="mb-12">
+    <div class="flex flex-wrap items-center gap-2 mb-4">
+      <span class="badge badge-primary badge-soft">Technical design</span>
+      <span class="badge badge-ghost">en_hint_plugin</span>
+      <span class="badge badge-ghost">Chrome MV3</span>
+    </div>
+    <h1 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+      Getting YouTube subtitles into the extension
+    </h1>
+    <p class="text-base md:text-lg opacity-80 max-w-3xl">
+      This covers only the subtitle pipeline: <strong>how the full transcript is read before playback</strong>,
+      <strong>how the current line is tracked in real time</strong>, and <strong>how playback is paused</strong>
+      while an overlay is up. The OpenAI scan and the vocabulary button are sketched at the end but not designed here.
+    </p>
+
+    <div class="mt-6 grid gap-3 sm:grid-cols-3">
+      <div class="card card-border bg-base-200">
+        <div class="card-body p-4">
+          <div class="text-xs uppercase tracking-widest opacity-60">Upfront read</div>
+          <div class="font-semibold mt-1">Whole transcript, with timings</div>
+          <div class="text-sm opacity-70 mt-1">Available ~immediately on video load, before playback matters.</div>
+        </div>
+      </div>
+      <div class="card card-border bg-base-200">
+        <div class="card-body p-4">
+          <div class="text-xs uppercase tracking-widest opacity-60">Real time</div>
+          <div class="font-semibold mt-1">Driven by <code>video.currentTime</code></div>
+          <div class="text-sm opacity-70 mt-1">Not by scraping the caption DOM — you get lookahead.</div>
+        </div>
+      </div>
+      <div class="card card-border bg-base-200">
+        <div class="card-body p-4">
+          <div class="text-xs uppercase tracking-widest opacity-60">Pause</div>
+          <div class="font-semibold mt-1"><code>video.pause()</code> on the real element</div>
+          <div class="text-sm opacity-70 mt-1">Works; the gotchas are all about <em>when</em>, not <em>how</em>.</div>
+        </div>
+      </div>
+    </div>
+
+    <div role="alert" class="alert alert-info alert-soft mt-6">
+      <span class="text-sm">
+        Two files already exist on disk from the spike: <code>manifest.json</code> and
+        <code>src/main-world.js</code>, plus <code>src/content.js</code>. Everything shown below either
+        comes from those files or is a proposed addition, and each block says which.
+      </span>
+    </div>
+  </header>
+
+  <!-- ===================== 1. WHERE SUBTITLES LIVE ===================== -->
+  <section class="mb-14">
+    <h2 class="anchor-h text-2xl font-bold mb-2">1. There is one object that has everything</h2>
+    <p class="opacity-80 mb-6 max-w-3xl">
+      YouTube builds every watch page from a JSON blob it calls the <em>player response</em>. Buried in it is a list of
+      caption tracks. Each track carries a URL that, with one query parameter added, returns the entire transcript as
+      JSON with millisecond timings. That is the whole trick — the rest of this document is about reliably getting
+      hold of that object.
+    </p>
+
+    <figure class="mb-4">
+      <svg class="fig" viewBox="0 0 900 210" role="img" aria-labelledby="fig1-title">
+        <title id="fig1-title">Four-stage drill-down from the player response object to a timed cue list</title>
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--color-primary)"/>
+          </marker>
+        </defs>
+
+        <g id="stage-player-response">
+          <title>The player response JSON that YouTube builds every watch page from</title>
+          <rect class="box-hi" x="8" y="46" width="196" height="112" rx="12"/>
+          <text class="t-key" x="24" y="72">STAGE 1</text>
+          <text class="t" x="24" y="94">player response</text>
+          <text class="t-sm" x="24" y="114">One big JSON object</text>
+          <text class="t-sm" x="24" y="130">describing this video:</text>
+          <text class="t-mono" x="24" y="147">videoDetails, captions…</text>
+        </g>
+        <path class="edge-hi" d="M208 102 L236 102" marker-end="url(#ah)"/>
+
+        <g id="stage-caption-tracks">
+          <title>captions.playerCaptionsTracklistRenderer.captionTracks — the list of available subtitle tracks</title>
+          <rect class="box" x="240" y="46" width="196" height="112" rx="12"/>
+          <text class="t-key" x="256" y="72">STAGE 2</text>
+          <text class="t" x="256" y="94">captionTracks[]</text>
+          <text class="t-mono" x="256" y="114">languageCode: "en"</text>
+          <text class="t-mono" x="256" y="130">kind: "asr" | undefined</text>
+          <text class="t-mono" x="256" y="147">baseUrl: "…/timedtext?…"</text>
+        </g>
+        <path class="edge-hi" d="M440 102 L468 102" marker-end="url(#ah)"/>
+
+        <g id="stage-timedtext">
+          <title>The baseUrl with fmt=json3 appended, fetched from the page world</title>
+          <rect class="box" x="472" y="46" width="196" height="112" rx="12"/>
+          <text class="t-key" x="488" y="72">STAGE 3</text>
+          <text class="t" x="488" y="94">GET baseUrl</text>
+          <text class="t-mono" x="488" y="114">+ &amp;fmt=json3</text>
+          <text class="t-sm" x="488" y="134">Default response is XML;</text>
+          <text class="t-sm" x="488" y="149">json3 is easier + richer.</text>
+        </g>
+        <path class="edge-hi" d="M672 102 L700 102" marker-end="url(#ah)"/>
+
+        <g id="stage-cues">
+          <title>The parsed cue list: start, end, and text for every subtitle line</title>
+          <rect class="box-hi" x="704" y="46" width="188" height="112" rx="12"/>
+          <text class="t-key" x="720" y="72">STAGE 4</text>
+          <text class="t" x="720" y="94">cues[]</text>
+          <text class="t-mono" x="720" y="114">{ start, end, text }</text>
+          <text class="t-sm" x="720" y="134">Typically 200–900 cues</text>
+          <text class="t-sm" x="720" y="149">for a 10–40 min video.</text>
+        </g>
+
+        <text class="t-sm" x="8" y="24">Everything below happens once, when the video page loads — long before you need the first explanation.</text>
+        <text class="t-sm" x="8" y="188">Cost: one extra HTTP request per video. The transcript for a 20-minute talk is roughly 25–40 KB of JSON.</text>
+      </svg>
+    </figure>
+
+    <div class="grid gap-4 md:grid-cols-2">
+      <div class="card card-border bg-base-200">
+        <div class="card-body p-5">
+          <h3 class="card-title text-base">Picking the right track</h3>
+          <p class="text-sm opacity-80">A video can have many tracks. <code>kind: "asr"</code> means auto-generated by
+          speech recognition. Prefer a human-written English track, fall back to the auto one.</p>
+          <ul class="text-sm opacity-80 list-disc pl-5 space-y-1 mt-1">
+            <li>Human tracks have punctuation and casing — much better input for idiom detection.</li>
+            <li>ASR tracks have neither, and split phrases across cues more aggressively.</li>
+            <li>Adding <code>&amp;tlang=en</code> asks YouTube to machine-translate a foreign track. Useful for
+                non-English source video, but the output is translationese — poor material for learning idioms.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card card-border bg-base-200">
+        <div class="card-body p-5">
+          <h3 class="card-title text-base">Why <code>fmt=json3</code></h3>
+          <p class="text-sm opacity-80">Without it you get YouTube's caption XML. With it you get:</p>
+          <ul class="text-sm opacity-80 list-disc pl-5 space-y-1 mt-1">
+            <li><code>tStartMs</code> and <code>dDurationMs</code> per event — millisecond precision.</li>
+            <li>A <code>segs[]</code> array, and on ASR tracks each segment carries its own
+                <code>tOffsetMs</code> — i.e. <strong>per-word timings</strong>, which is exactly what you want to
+                highlight a single expression rather than a whole line.</li>
+            <li>No XML entity decoding to get wrong.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 2. TWO ROUTES ===================== -->
+  <section class="mb-14">
+    <h2 class="anchor-h text-2xl font-bold mb-2">2. The player response arrives by two different routes</h2>
+    <p class="opacity-80 mb-6 max-w-3xl">
+      This is the part that quietly breaks extensions. YouTube is a single-page app, so "starting a video" means two
+      completely different things depending on how the user got there — and each one delivers the player response by a
+      route the other one's hook cannot see. <strong>You have to hook both.</strong>
+    </p>
+
+    <figure class="mb-5">
+      <svg class="fig" viewBox="0 0 900 400" role="img" aria-labelledby="fig2-title">
+        <title id="fig2-title">Hard page load delivers the player response inline in HTML; SPA navigation delivers it over fetch. Both must be hooked.</title>
+        <defs>
+          <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--color-primary)"/>
+          </marker>
+          <marker id="ah2m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--color-base-content)" fill-opacity=".45"/>
+          </marker>
+        </defs>
+
+        <!-- LEFT: hard load -->
+        <g id="route-hard-load">
+          <title>Route A: a hard page load, where the player response is inlined in the HTML</title>
+          <rect class="box-mute" x="14" y="8" width="410" height="252" rx="14"/>
+          <text class="t-key" x="34" y="36">ROUTE A — HARD LOAD</text>
+          <text class="t-sm" x="34" y="54">Paste a /watch URL, reload, or open in a new tab</text>
+
+          <rect class="box" x="34" y="70" width="370" height="46" rx="10"/>
+          <text class="t" x="50" y="90">Server returns the watch page HTML</text>
+          <text class="t-mono" x="50" y="107">…with an inline &lt;script&gt; in the body</text>
+
+          <path class="edge" d="M219 116 L219 140" marker-end="url(#ah2m)"/>
+
+          <rect class="box" x="34" y="144" width="370" height="46" rx="10"/>
+          <text class="t-mono" x="50" y="166">var ytInitialPlayerResponse = { … };</text>
+          <text class="t-warn" x="50" y="183">No network request happens — a fetch hook sees nothing</text>
+
+          <path class="edge-hi" d="M219 190 L219 214" marker-end="url(#ah2)"/>
+
+          <rect class="box-hi" x="34" y="218" width="370" height="34" rx="10"/>
+          <text class="t" x="50" y="240">Hook: a property setter on window</text>
+        </g>
+
+        <!-- RIGHT: SPA nav -->
+        <g id="route-spa">
+          <title>Route B: in-app navigation, where the player response arrives as a fetch response</title>
+          <rect class="box-mute" x="476" y="8" width="410" height="252" rx="14"/>
+          <text class="t-key" x="496" y="36">ROUTE B — IN-APP CLICK</text>
+          <text class="t-sm" x="496" y="54">Click a video from home, search, or the sidebar</text>
+
+          <rect class="box" x="496" y="70" width="370" height="46" rx="10"/>
+          <text class="t" x="512" y="90">No page reload; the SPA swaps the view</text>
+          <text class="t-mono" x="512" y="107">history.pushState + a data fetch</text>
+
+          <path class="edge" d="M681 116 L681 140" marker-end="url(#ah2m)"/>
+
+          <rect class="box" x="496" y="144" width="370" height="46" rx="10"/>
+          <text class="t-mono" x="512" y="166">POST /youtubei/v1/player → JSON</text>
+          <text class="t-warn" x="512" y="183">ytInitialPlayerResponse is NOT reassigned</text>
+
+          <path class="edge-hi" d="M681 190 L681 214" marker-end="url(#ah2)"/>
+
+          <rect class="box-hi" x="496" y="218" width="370" height="34" rx="10"/>
+          <text class="t" x="512" y="240">Hook: a wrapper around window.fetch</text>
+        </g>
+
+        <!-- converge -->
+        <path class="edge-hi" d="M219 252 L219 300 L430 300" marker-end="url(#ah2)"/>
+        <path class="edge-hi" d="M681 252 L681 300 L470 300" marker-end="url(#ah2)"/>
+
+        <rect class="box-hi" x="272" y="316" width="356" height="64" rx="12"/>
+        <text class="t" x="292" y="342">handlePlayerResponse(pr, via)</text>
+        <text class="t-sm" x="292" y="362">Dedupe on videoDetails.videoId → pick track → fetch transcript</text>
+
+        <text class="t-sm" x="14" y="396">Both hooks must be installed before YouTube's own scripts run — see section 3.</text>
+      </svg>
+    </figure>
+
+    <div role="alert" class="alert alert-warning alert-soft mb-6">
+      <span class="text-sm">
+        <strong>The dedupe matters.</strong> Route B can fire more than once for the same video (prefetch on hover,
+        quality changes, ad breaks). Keying on <code>videoDetails.videoId</code> and ignoring repeats is what keeps you
+        from fetching the same transcript three times and re-running the OpenAI scan.
+      </span>
+    </div>
+
+    <h3 class="text-lg font-semibold mb-2">Both hooks, as written</h3>
+    <p class="text-sm opacity-70 mb-3">
+      <code>src/main-world.js</code> — already on disk. The property setter is lines 109–125; the fetch wrapper is
+      lines 126–144.
+    </p>
+    <div id="code-mainworld" class="codewrap mb-4"></div>
+  </section>
+
+  <!-- ===================== 3. THE WORLD SPLIT ===================== -->
+  <section class="mb-14">
+    <h2 class="anchor-h text-2xl font-bold mb-2">3. Why this code cannot live in a normal content script</h2>
+    <p class="opacity-80 mb-6 max-w-3xl">
+      A Chrome content script shares the page's DOM but <strong>not its JavaScript</strong>. It runs in an isolated
+      world with its own <code>window</code>. So a content script reading <code>window.ytInitialPlayerResponse</code>
+      gets <code>undefined</code>, and a content script wrapping <code>window.fetch</code> wraps a copy the page never
+      calls. Both hooks have to run in the page's own world.
+    </p>
+
+    <figure class="mb-5">
+      <svg class="fig" viewBox="0 0 900 330" role="img" aria-labelledby="fig3-title">
+        <title id="fig3-title">Three execution contexts: the page world holds the hooks, the isolated world holds the UI, the service worker holds the API key</title>
+        <defs>
+          <marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--color-primary)"/>
+          </marker>
+          <marker id="ah3bad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--color-error)"/>
+          </marker>
+        </defs>
+
+        <g id="world-main">
+          <title>MAIN world — the page's own JavaScript context, where YouTube's player runs</title>
+          <rect class="box-hi" x="12" y="46" width="272" height="200" rx="14"/>
+          <text class="t-key" x="30" y="72">MAIN WORLD</text>
+          <text class="t-sm" x="30" y="90">The page's own JS. YouTube lives here.</text>
+          <text class="t" x="30" y="120">src/main-world.js</text>
+          <text class="t-mono" x="30" y="142">• setter on ytInitialPlayerResponse</text>
+          <text class="t-mono" x="30" y="160">• wrapper around window.fetch</text>
+          <text class="t-mono" x="30" y="178">• fetch(baseUrl + fmt=json3)</text>
+          <text class="t-sm" x="30" y="206">Fetching from here inherits YouTube's</text>
+          <text class="t-sm" x="30" y="222">origin, cookies and Referer.</text>
+        </g>
+
+        <g id="world-isolated">
+          <title>ISOLATED world — the extension's content script, which owns the overlay UI</title>
+          <rect class="box" x="314" y="46" width="272" height="200" rx="14"/>
+          <text class="t-key" x="332" y="72">ISOLATED WORLD</text>
+          <text class="t-sm" x="332" y="90">Same DOM, separate JS. Has chrome.*</text>
+          <text class="t" x="332" y="120">src/content.js</text>
+          <text class="t-mono" x="332" y="142">• holds the cue list</text>
+          <text class="t-mono" x="332" y="160">• drives the timing loop</text>
+          <text class="t-mono" x="332" y="178">• renders the overlay</text>
+          <text class="t-mono" x="332" y="196">• calls video.pause()</text>
+          <text class="t-sm" x="332" y="222">Can touch the DOM and chrome.storage.</text>
+        </g>
+
+        <g id="world-sw">
+          <title>Service worker — the only place the OpenAI key should live</title>
+          <rect class="box" x="616" y="46" width="272" height="200" rx="14"/>
+          <text class="t-key" x="634" y="72">SERVICE WORKER</text>
+          <text class="t-sm" x="634" y="90">No DOM. Survives navigation.</text>
+          <text class="t" x="634" y="120">src/background.js</text>
+          <text class="t-mono" x="634" y="142">• holds the OpenAI key</text>
+          <text class="t-mono" x="634" y="160">• runs the scan</text>
+          <text class="t-mono" x="634" y="178">• caches results by videoId</text>
+          <text class="t-sm" x="634" y="206">Keeping the key out of the page world</text>
+          <text class="t-sm" x="634" y="222">stops YouTube's JS from reading it.</text>
+        </g>
+
+        <path class="edge-hi" d="M284 268 L314 268" marker-end="url(#ah3)"/>
+        <text class="t-mono" x="150" y="272" text-anchor="middle">window.postMessage</text>
+        <path class="edge-hi" d="M586 268 L616 268" marker-end="url(#ah3)"/>
+        <text class="t-mono" x="450" y="272" text-anchor="middle">chrome.runtime.sendMessage</text>
+        <text class="t-mono" x="752" y="272" text-anchor="middle">fetch → OpenAI</text>
+
+        <path class="edge-bad" d="M420 46 L420 20 L148 20 L148 46" marker-end="url(#ah3bad)"/>
+        <text class="t-warn" x="284" y="14" text-anchor="middle">✕ cannot read the page's window — this is the whole reason for the split</text>
+
+        <text class="t-sm" x="12" y="308">postMessage is visible to the page, so treat anything arriving on it as untrusted and check event.source === window.</text>
+        <text class="t-sm" x="12" y="324">Bridging cost: one message hop, sub-millisecond. Not a factor for timing.</text>
+      </svg>
+    </figure>
+
+    <h3 class="text-lg font-semibold mb-2">What makes it work: <code>"world": "MAIN"</code> at <code>document_start</code></h3>
+    <p class="text-sm opacity-70 mb-3">
+      <code>manifest.json</code> — already on disk. Two content-script entries over the same match pattern, one per world.
+      <code>document_start</code> is not optional: the setter has to be installed before YouTube's inline script assigns.
+    </p>
+    <div id="code-manifest" class="codewrap mb-4"></div>
+    <p class="text-sm opacity-70">
+      <code>world: "MAIN"</code> in the manifest needs Chrome 111+. Before that, the only way in was injecting a
+      <code>&lt;script src=chrome.runtime.getURL(...)&gt;</code> tag from a content script — still a valid fallback if
+      you ever need to support older Chromium or Firefox.
+    </p>
+  </section>
+
+  <!-- ===================== 4. REAL TIME ===================== -->
+  <section class="mb-14">
+    <h2 class="anchor-h text-2xl font-bold mb-2">4. Following the subtitles in real time</h2>
+    <p class="opacity-80 mb-6 max-w-3xl">
+      "Real time" has three possible sources, and the choice decides whether you can pause the video
+      <em>before</em> the interesting phrase is spoken or only after. Name the decision now, because everything
+      downstream depends on it.
+    </p>
+
+    <div class="grid gap-4 lg:grid-cols-3 mb-8">
+      <div class="card card-border border-primary bg-base-200">
+        <div class="card-body p-5">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="badge badge-primary badge-sm">Recommended</span>
+          </div>
+          <h3 class="card-title text-base">A · Clock-driven from the cue list</h3>
+          <p class="text-sm opacity-80">Poll <code>video.currentTime</code> against the transcript you already
+          downloaded, and schedule the overlay yourself.</p>
+          <div class="rule my-2"></div>
+          <p class="text-xs uppercase tracking-widest opacity-60">Gives you</p>
+          <ul class="text-sm opacity-85 list-disc pl-5 space-y-1">
+            <li><strong>Lookahead.</strong> You know a phrase is 800 ms away, so the overlay is rendered and the pause
+                lands on the right frame.</li>
+            <li>Works with captions turned <em>off</em> — nothing is scraped from the screen.</li>
+            <li>Survives seeking, speed changes, and ad breaks (currentTime is authoritative).</li>
+          </ul>
+          <p class="text-xs uppercase tracking-widest opacity-60 mt-2">Costs</p>
+          <ul class="text-sm opacity-70 list-disc pl-5 space-y-1">
+            <li>Needs the upfront fetch to have succeeded.</li>
+            <li>You own the alignment; ASR drift is yours to absorb.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card card-border bg-base-200">
+        <div class="card-body p-5">
+          <div class="flex items-center gap-2 mb-1"><span class="badge badge-ghost badge-sm">Fallback</span></div>
+          <h3 class="card-title text-base">B · Scrape the caption DOM</h3>
+          <p class="text-sm opacity-80">A <code>MutationObserver</code> on <code>.ytp-caption-segment</code>, reacting
+          to whatever YouTube renders.</p>
+          <div class="rule my-2"></div>
+          <p class="text-xs uppercase tracking-widest opacity-60">Gives you</p>
+          <ul class="text-sm opacity-85 list-disc pl-5 space-y-1">
+            <li>Perfect alignment with what the viewer literally sees.</li>
+            <li>A safety net when the transcript fetch fails.</li>
+          </ul>
+          <p class="text-xs uppercase tracking-widest opacity-60 mt-2">Costs</p>
+          <ul class="text-sm opacity-70 list-disc pl-5 space-y-1">
+            <li><strong>Zero lookahead</strong> — by the time you see the text, it has been spoken. Pausing then is
+                always late.</li>
+            <li>Requires the user to leave CC on.</li>
+            <li>Depends on YouTube's class names, which are not a contract.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card card-border bg-base-200 opacity-70">
+        <div class="card-body p-5">
+          <div class="flex items-center gap-2 mb-1"><span class="badge badge-ghost badge-sm">Not available</span></div>
+          <h3 class="card-title text-base">C · Native <code>TextTrack</code> cue events</h3>
+          <p class="text-sm opacity-80">The clean HTML5 way: <code>track.addEventListener("cuechange", …)</code>.</p>
+          <div class="rule my-2"></div>
+          <p class="text-sm opacity-80">
+            YouTube does not attach native <code>&lt;track&gt;</code> elements — captions are drawn as ordinary DOM
+            nodes over the player. So there are no cues to listen to. Worth knowing so you don't spend an evening
+            looking for them.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="text-lg font-semibold mb-2">The timing model, concretely</h3>
+    <p class="opacity-80 mb-4 max-w-3xl">
+      Each annotation the scan produces is anchored to a cue and, where per-word offsets exist, to a character range
+      inside it. That gives three distinct moments per annotation. <strong>Playback stops at <code>cue.end</code></strong> — the
+      line is allowed to finish, then the explanation appears; the phrase offset is used only to highlight the words.
+    </p>
+
+    <figure class="mb-5">
+      <svg class="fig" viewBox="0 0 900 250" role="img" aria-labelledby="fig4-title">
+        <title id="fig4-title">A timeline showing prepare, phrase start, and cue end, and where a pause could land</title>
+        <defs>
+          <marker id="ah4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--color-base-content)" fill-opacity=".5"/>
+          </marker>
+        </defs>
+
+        <text class="t-sm" x="12" y="22">One cue, magnified. Times come straight from json3.</text>
+
+        <!-- cue blocks -->
+        <rect class="box-mute" x="12" y="46" width="150" height="44" rx="8"/>
+        <text class="t-mono" x="26" y="73">previous cue</text>
+
+        <rect class="box" x="170" y="46" width="480" height="44" rx="8"/>
+        <text class="t-mono" x="186" y="73">She kept her cool when the deal</text>
+        <rect class="box-hi" x="452" y="50" width="182" height="36" rx="6"/>
+        <text class="t-mono" x="466" y="73">fell through</text>
+
+        <rect class="box-mute" x="658" y="46" width="150" height="44" rx="8"/>
+        <text class="t-mono" x="672" y="73">next cue</text>
+
+        <!-- axis -->
+        <path class="edge" d="M12 118 L888 118"/>
+        <g>
+          <path class="edge" d="M170 108 L170 128"/>
+          <text class="t-mono" x="170" y="146" text-anchor="middle">cue.start</text>
+          <text class="t-sm" x="170" y="162" text-anchor="middle">12.400</text>
+        </g>
+        <g>
+          <path class="edge-hi" d="M452 104 L452 132"/>
+          <text class="t-key" x="452" y="150" text-anchor="middle">PHRASE START</text>
+          <text class="t-sm" x="452" y="166" text-anchor="middle">14.980 — from segs[].tOffsetMs</text>
+        </g>
+        <g>
+          <path class="edge" d="M650 108 L650 128"/>
+          <text class="t-mono" x="650" y="146" text-anchor="middle">cue.end</text>
+          <text class="t-sm" x="650" y="162" text-anchor="middle">16.100</text>
+        </g>
+
+        <!-- prepare window -->
+        <rect class="box-warn" x="372" y="186" width="80" height="30" rx="6"/>
+        <path class="edge-dash" d="M372 118 L372 186"/>
+        <text class="t-warn" x="412" y="206" text-anchor="middle">prepare</text>
+        <text class="t-sm" x="360" y="236" text-anchor="end">Render the overlay ~300–500 ms early so it is painted before the pause.</text>
+
+        <!-- pause options -->
+        <g id="pause-options">
+          <title>Three candidate moments to pause playback</title>
+          <circle cx="452" cy="118" r="5" fill="var(--color-base-content)" fill-opacity=".4"/>
+          <circle cx="650" cy="118" r="7" fill="var(--color-primary)"/>
+          <text class="t-sm" x="470" y="236">Chosen: stop at cue.end — the line finishes, then the explanation appears</text>
+        </g>
+      </svg>
+    </figure>
+
+    <div role="alert" class="alert alert-warning alert-soft mb-6">
+      <span class="text-sm">
+        <strong>Do not drive this off the <code>timeupdate</code> event.</strong> It fires roughly four times a second,
+        so a pause can land up to 250 ms late — visibly past the word. Use a
+        <code>requestAnimationFrame</code> loop (~60 Hz while the tab is visible), or, better, compute the next
+        interesting timestamp and <code>setTimeout</code> straight to it, re-arming on <code>seeking</code>,
+        <code>ratechange</code>, <code>play</code> and <code>pause</code>.
+      </span>
+    </div>
+
+    <h3 class="anchor-h text-lg font-semibold mb-2">Tracking the time precisely enough to stop on it</h3>
+    <p class="opacity-80 mb-4 max-w-3xl">
+      There are three clocks available, and only one of them is accurate enough to stop the video on a chosen
+      moment rather than somewhere near it.
+    </p>
+
+    <div class="overflow-x-auto rounded-box border border-base-content/10 bg-base-100 mb-5">
+      <table class="table table-sm">
+        <thead>
+          <tr><th class="w-1/5">Clock</th><th class="w-1/6">Granularity</th><th>What it costs you</th></tr>
+        </thead>
+        <tbody>
+          <tr class="opacity-60">
+            <td><code>timeupdate</code> event</td>
+            <td>~250 ms</td>
+            <td>The browser fires it roughly 4×/sec. A stop can land a quarter-second past the word — audible, and
+                the wrong line is often already on screen. Fine for a progress bar, not for this.</td>
+          </tr>
+          <tr>
+            <td class="font-semibold"><code>requestAnimationFrame</code> <span class="badge badge-primary badge-xs">chosen</span></td>
+            <td>~16 ms</td>
+            <td>Read <code>video.currentTime</code> every frame. Seeking, playback-rate changes and buffering need
+                <em>no</em> special handling, because the clock is always the truth. Cost is one number comparison per
+                frame. Caveat: rAF is suspended in a hidden tab while YouTube keeps playing audio.</td>
+          </tr>
+          <tr>
+            <td><code>setTimeout</code> to the next mark</td>
+            <td>~1 ms</td>
+            <td>Arm a timer at <code>(stopAt − currentTime) / playbackRate × 1000</code>. Most efficient and works in a
+                background tab, but you must re-arm on <code>seeked</code>, <code>ratechange</code>, <code>play</code>,
+                <code>pause</code> and — the one people forget — <code>waiting</code>, since the timer keeps running
+                while the video stalls on buffering.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div role="alert" class="alert alert-info alert-soft mb-5">
+      <span class="text-sm">
+        <strong>16 ms is already more precision than the data has.</strong> json3 cue boundaries are accurate to maybe
+        ±100 ms, and auto-generated tracks drift further than that. rAF is chosen because it is <em>simple and
+        self-correcting</em>, not because it is the most precise option — the extra precision of a timer buys nothing
+        here and costs five edge cases.
+      </span>
+    </div>
+
+    <h4 class="font-semibold mb-2">The loop, and the three pieces of state around it</h4>
+    <p class="text-sm opacity-70 mb-3">
+      <code>src/scheduler.js</code> — written, not yet listed in <code>manifest.json</code>. The interesting parts are
+      the <code>tick</code> loop (one comparison per frame against a cursor, not a scan of every annotation),
+      <code>resync</code> (the only thing a seek invalidates), and the deliberate choice <em>not</em> to clear the
+      <code>fired</code> set when the user rewinds.
+    </p>
+    <div id="code-scheduler" class="codewrap mb-5"></div>
+
+    <h3 class="text-lg font-semibold mb-2">The cue lookup that exists today</h3>
+    <p class="text-sm opacity-70 mb-3">
+      <code>src/content.js</code> — already on disk. This is the spike version: a binary search over the cue list plus a
+      <code>timeupdate</code> listener, enough to prove the timings line up with the audio. Lines 53–99 are the part
+      that would be replaced by the scheduler described above.
+    </p>
+    <div id="code-content" class="codewrap mb-4"></div>
+  </section>
+
+  <!-- ===================== 5. PAUSING ===================== -->
+  <section class="mb-14">
+    <h2 class="anchor-h text-2xl font-bold mb-2">5. Stopping playback while the overlay is up</h2>
+    <p class="opacity-80 mb-6 max-w-3xl">
+      The mechanism is trivial — <code>document.querySelector("video").pause()</code> on the real element, and
+      YouTube's own UI updates to match, because that is the element its player controls. Everything hard about this
+      is behavioural.
+    </p>
+
+    <div class="overflow-x-auto rounded-box border border-base-content/10 bg-base-100 mb-6">
+      <table class="table table-zebra">
+        <thead>
+          <tr><th class="w-1/3">Trap</th><th>What goes wrong</th><th>Handling</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="font-semibold">Re-pausing the same phrase</td>
+            <td>The user resumes, the clock crosses the same timestamp again on the next frame, you pause again. The
+                video becomes unplayable.</td>
+            <td>Keep a <code>Set</code> of annotation ids already shown for this video, and only arm each once. Clear it
+                on video change, not on seek.</td>
+          </tr>
+          <tr>
+            <td class="font-semibold">The user resumes manually</td>
+            <td>They hit space or click play while the overlay is still on screen; the overlay now floats over moving
+                video.</td>
+            <td>Listen for <code>play</code> on the video element and dismiss the overlay from that handler. Treat the
+                video element as the source of truth, not your own flag.</td>
+          </tr>
+          <tr>
+            <td class="font-semibold">Seeking backwards</td>
+            <td>Rewinding to re-listen re-triggers every annotation in the passage.</td>
+            <td>On <code>seeking</code>, rebuild the schedule from the new time but keep the "already shown" set — the
+                user rewound to hear it, not to be interrupted again.</td>
+          </tr>
+          <tr>
+            <td class="font-semibold">Pausing during an ad</td>
+            <td>Ads play through the same <code>&lt;video&gt;</code> element with their own timeline, so cue times are
+                meaningless and your overlay appears over the ad.</td>
+            <td>Suspend the scheduler while <code>.ad-showing</code> is present on the player container, and re-arm when
+                it clears.</td>
+          </tr>
+          <tr>
+            <td class="font-semibold">Too many pauses</td>
+            <td>A dense talk at B1 level can yield an interesting expression every few seconds. Auto-pausing on each is
+                unusable.</td>
+            <td>Rate-limit — at most one auto-pause per N seconds — and/or only auto-pause above a difficulty threshold,
+                leaving the rest as passive highlights. <span class="badge badge-success badge-soft badge-xs">decided</span></td>
+          </tr>
+          <tr>
+            <td class="font-semibold">Fullscreen and theater mode</td>
+            <td>An overlay appended to <code>document.body</code> disappears in fullscreen, because the fullscreen
+                element is the player container.</td>
+            <td>Append the overlay inside <code>#movie_player</code> rather than to the body, so it is part of the
+                fullscreened subtree.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card card-border bg-base-200">
+      <div class="card-body p-5">
+        <h3 class="card-title text-base">Suggested shape</h3>
+        <p class="text-sm opacity-80">
+          Rather than "pause on hit", model it as a small state machine per annotation:
+          <code class="whitespace-nowrap">scheduled → prepared → shown → dismissed</code>. The mark is <code>cues[cueIndex].end</code>, so <em>prepared</em> renders the
+          overlay hidden a few hundred milliseconds before the cue ends and the paint is done in time; <em>shown</em> calls
+          <code>pause()</code> and reveals it; <em>dismissed</em> calls <code>play()</code> and marks the id as spent.
+          The user's own play/pause input always wins and forces <em>dismissed</em>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 6. WHERE THE SCAN FITS ===================== -->
+  <section class="mb-14">
+    <h2 class="anchor-h text-2xl font-bold mb-2">6. Where the OpenAI scan slots in</h2>
+    <p class="opacity-80 mb-6 max-w-3xl">
+      Sketch only — the scan itself is the next document. What matters here is that the upfront transcript makes the
+      scan a <strong>single background call per video</strong>, not a per-cue call during playback. That is the main
+      reason to fetch the whole track up front rather than react line by line.
+    </p>
+
+    <figure class="mb-5">
+      <svg class="fig" viewBox="0 0 900 200" role="img" aria-labelledby="fig5-title">
+        <title id="fig5-title">Transcript to annotations: one background scan per video, cached by video id</title>
+        <defs>
+          <marker id="ah5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--color-primary)"/>
+          </marker>
+        </defs>
+
+        <rect class="box" x="10" y="52" width="180" height="76" rx="12"/>
+        <text class="t" x="26" y="80">cues[]</text>
+        <text class="t-sm" x="26" y="100">Numbered, so the model</text>
+        <text class="t-sm" x="26" y="116">can point back at one.</text>
+
+        <path class="edge-hi" d="M194 90 L226 90" marker-end="url(#ah5)"/>
+
+        <rect class="box-hi" x="230" y="52" width="200" height="76" rx="12"/>
+        <text class="t" x="246" y="80">Service worker</text>
+        <text class="t-sm" x="246" y="100">One OpenAI call, level in</text>
+        <text class="t-sm" x="246" y="116">the prompt, JSON schema out.</text>
+
+        <path class="edge-hi" d="M434 90 L466 90" marker-end="url(#ah5)"/>
+
+        <rect class="box" x="470" y="52" width="212" height="76" rx="12"/>
+        <text class="t" x="486" y="80">annotations[]</text>
+        <text class="t-mono" x="486" y="100">{ cueIndex, phrase, kind,</text>
+        <text class="t-mono" x="486" y="116">&#160; difficulty, explanation }</text>
+
+        <path class="edge-hi" d="M686 90 L718 90" marker-end="url(#ah5)"/>
+
+        <rect class="box-hi" x="722" y="52" width="168" height="76" rx="12"/>
+        <text class="t" x="738" y="80">chrome.storage</text>
+        <text class="t-sm" x="738" y="100">Keyed by videoId +</text>
+        <text class="t-sm" x="738" y="116">level. Free on replay.</text>
+
+        <text class="t-sm" x="10" y="30">Runs while the first minute plays. The scheduler simply has nothing to show until it lands.</text>
+        <text class="t-sm" x="10" y="164">A 20-minute talk is roughly 3,000 words — comfortably one request. Long videos chunk by time window, never mid-cue.</text>
+        <text class="t-sm" x="10" y="182">Anchoring on cueIndex (not character offsets into a joined string) is what keeps annotations aligned after any re-parse.</text>
+      </svg>
+    </figure>
+
+    <div role="alert" class="alert alert-error alert-soft">
+      <span class="text-sm">
+        <strong>Key handling.</strong> An API key inside a distributed extension is readable by anyone who unpacks it —
+        there is no way around that. For personal use, a key the user pastes into an options page and that lives only in
+        <code>chrome.storage.local</code> is fine. If this is ever shared, the calls have to go through a small backend
+        you own. Worth deciding before the scan code is written, because it changes where the request is made.
+      </span>
+    </div>
+  </section>
+
+  <!-- ===================== 7. RISKS ===================== -->
+  <section class="mb-14">
+    <h2 class="anchor-h text-2xl font-bold mb-2">7. What can break, and what it looks like</h2>
+    <div class="overflow-x-auto rounded-box border border-base-content/10 bg-base-100">
+      <table class="table table-zebra">
+        <thead>
+          <tr><th class="w-1/4">Risk</th><th>Why</th><th class="w-1/3">Mitigation</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-error badge-soft badge-sm">High</span> <span class="font-semibold">The transcript fetch returns empty or 403</span></td>
+            <td>YouTube has been tightening <code>timedtext</code> access — the URL can carry short-lived tokens tied to
+                the session. A request made from the wrong context gets a 200 with an empty body rather than an error.</td>
+            <td>Fetch from the MAIN world (as written) so origin, cookies and Referer match. Treat an empty body as a
+                failure explicitly. Fall back to hooking the player's <em>own</em> <code>/api/timedtext</code> response —
+                the existing code already logs when it sees one, which is the hook point.</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-warning badge-soft badge-sm">Medium</span> <span class="font-semibold">Auto-generated captions only</span></td>
+            <td>No punctuation, no sentence boundaries, phrases split across cues. Idiom detection degrades sharply and
+                "expressions of feeling" are the first thing to be lost.</td>
+            <td>Detect <code>kind === "asr"</code> and tell the model so in the prompt. Consider re-joining cues into
+                sentence-ish windows before scanning, keeping a cue-index map for anchoring.</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-warning badge-soft badge-sm">Medium</span> <span class="font-semibold">YouTube changes the internal JSON shape</span></td>
+            <td><code>playerCaptionsTracklistRenderer</code> is an internal name with no compatibility promise.</td>
+            <td>Optional-chain every access (already done), and surface a visible "couldn't read captions" state rather
+                than failing silently, so a break is noticed the same day.</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-warning badge-soft badge-sm">Medium</span> <span class="font-semibold">Auto-pause is annoying</span></td>
+            <td>The feature that sounds best in a spec is the one most likely to get the extension switched off.</td>
+            <td>Decided: auto-pause only at or above a difficulty threshold, and at most once per gap. Everything below the threshold is highlighted but never stops the video.</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-ghost badge-sm">Low</span> <span class="font-semibold">No captions, or a live stream</span></td>
+            <td>Live streams have no complete transcript; some videos have none at all.</td>
+            <td>Already handled as a distinct <code>no-captions</code> signal. Live streams need the incremental
+                <code>/api/timedtext</code> hook or nothing — out of scope for v1.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===================== 8. DECISIONS TAKEN ===================== -->
+  <section class="mb-10">
+    <h2 class="anchor-h text-2xl font-bold mb-2">8. Decisions taken</h2>
+    <p class="opacity-80 mb-6 max-w-3xl">Settled in review; the sections above already reflect them.</p>
+
+    <div class="grid gap-3 sm:grid-cols-2 mb-8">
+      <div class="card card-border border-success/40 bg-base-200">
+        <div class="card-body p-4">
+          <div class="text-xs uppercase tracking-widest opacity-60">Pause policy</div>
+          <div class="font-semibold mt-1">Selective and rate-limited</div>
+          <div class="text-sm opacity-75 mt-1">Only at or above a difficulty threshold, at most once per gap.
+            Everything below it is still surfaced, just without stopping.</div>
+        </div>
+      </div>
+      <div class="card card-border border-success/40 bg-base-200">
+        <div class="card-body p-4">
+          <div class="text-xs uppercase tracking-widest opacity-60">Pause moment</div>
+          <div class="font-semibold mt-1">End of the cue</div>
+          <div class="text-sm opacity-75 mt-1">The line finishes, then the explanation appears. So the mark is
+            <code>cues[cueIndex].end</code>, and per-word offsets are only needed for highlighting.</div>
+        </div>
+      </div>
+      <div class="card card-border border-success/40 bg-base-200">
+        <div class="card-body p-4">
+          <div class="text-xs uppercase tracking-widest opacity-60">Level</div>
+          <div class="font-semibold mt-1">Fixed CEFR level in options</div>
+          <div class="text-sm opacity-75 mt-1">A2 / B1 / B2 / C1. Scan results cache cleanly per
+            <code>(videoId, level)</code> and stay valid as the vocabulary list grows.</div>
+        </div>
+      </div>
+      <div class="card card-border border-success/40 bg-base-200">
+        <div class="card-body p-4">
+          <div class="text-xs uppercase tracking-widest opacity-60">Next step</div>
+          <div class="font-semibold mt-1">Verify the spike on real videos</div>
+          <div class="text-sm opacity-75 mt-1">Before any scan or overlay code. Checklist below.</div>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="text-lg font-semibold mb-2">Verification checklist</h3>
+    <p class="opacity-80 mb-4 max-w-3xl">
+      Load the folder unpacked at <code>chrome://extensions</code> → Developer mode → Load unpacked. The badge in the
+      bottom-left corner reports what happened; the console has the detail. Each row below is a case that exercises a
+      different code path.
+    </p>
+    <div class="overflow-x-auto rounded-box border border-base-content/10 bg-base-100 mb-6">
+      <table class="table table-zebra table-sm">
+        <thead><tr><th class="w-1/3">Case</th><th>Exercises</th><th class="w-1/4">Expected badge</th></tr></thead>
+        <tbody>
+          <tr><td>Paste a /watch URL and press Enter</td><td>Route A — the <code>ytInitialPlayerResponse</code> setter</td><td><code>N cues loaded</code>, via <code>ytInitialPlayerResponse</code> in the console</td></tr>
+          <tr><td>From that page, click a sidebar video</td><td>Route B — the fetch wrapper</td><td><code>N cues loaded</code>, via <code>youtubei/player</code></td></tr>
+          <tr><td>A video with human-written captions</td><td>Track selection preferring non-ASR</td><td>console shows the track without <code>(auto-generated)</code></td></tr>
+          <tr><td>A video with auto-captions only</td><td>ASR fallback, and how bad the text really is</td><td><code>(auto-generated)</code> in the console line</td></tr>
+          <tr><td>A video with captions disabled</td><td>The no-captions path</td><td><code>no captions</code></td></tr>
+          <tr><td>Let any video play a minute</td><td>Timing alignment</td><td>The badge text tracks what is being said</td></tr>
+          <tr><td>Scrub the progress bar around</td><td>Cue lookup under seeking</td><td>Badge follows immediately, no stale line</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div role="alert" class="alert alert-warning alert-soft">
+      <span class="text-sm">
+        <strong>The row that matters most is the last-but-two.</strong> If the transcript fetch comes back empty or 403,
+        everything else in this design still holds but needs the fallback path in section 7 — so run that case first.
+      </span>
+    </div>
+  </section>
+
+  <footer class="rule mb-4"></footer>
+  <p class="text-sm opacity-60">
+    Verified against the files in this repo. Not yet verified against a live YouTube page — the transcript fetch in
+    section 1 is the one step that needs a real run before it can be called working.
+  </p>
+
+</div>
+
+<!-- ===================== SOURCE FOR THE CODE VIEWS ===================== -->
+<script type="text/plain" id="src-manifest">{
+  "manifest_version": 3,
+  "name": "EN Hint (subtitle capture POC)",
+  "version": "0.1.0",
+  "description": "Captures the full YouTube subtitle track up front when a video starts.",
+  "host_permissions": ["https://www.youtube.com/*"],
+  "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["src/main-world.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    },
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["src/content.js"],
+      "run_at": "document_start",
+      "world": "ISOLATED",
+      "all_frames": false
+    }
+  ]
+}
+</script>
+<script type="text/plain" id="src-mainworld">// Runs in the PAGE's JS world at document_start, before YouTube's own scripts.
+// Its only job: get the full caption track for the current video, as early as possible.
+//
+// YouTube exposes caption tracks in the "player response" object. That object
+// reaches the page by two different routes, so we hook both:
+//
+//   1. Hard page load (you paste a /watch URL, or press reload)
+//        -> the player response is inlined in the HTML as `window.ytInitialPlayerResponse`.
+//           No network request happens, so a fetch hook would never see it.
+//           We install a property setter to catch the assignment.
+//
+//   2. SPA navigation (you click a video from the sidebar/home page)
+//        -> the page fetches POST /youtubei/v1/player and gets the player
+//           response as JSON. `ytInitialPlayerResponse` is NOT reassigned.
+//           We wrap window.fetch to clone and read that response.
+//
+// Both routes hand us `captions.playerCaptionsTracklistRenderer.captionTracks[]`,
+// where each track has a `baseUrl`. Appending `&fmt=json3` to that URL returns the
+// whole transcript with millisecond timings — that's the "upfront" read.
+//
+// We fetch from the page world on purpose: the request then carries YouTube's own
+// origin, cookies and Referer, plus whatever short-lived tokens are already baked
+// into baseUrl. A fetch from the extension's isolated world is more likely to come
+// back 403 or empty.
+
+(() => {
+  const CHANNEL = "en-hint";
+  const post = (type, payload) =>
+    window.postMessage({ source: CHANNEL, type, payload }, window.location.origin);
+
+  let lastVideoId = null;
+
+  // ---- track selection -----------------------------------------------------
+  // Prefer a human-written English track; fall back to auto-generated ("asr");
+  // fall back again to whatever the video has.
+  function pickTrack(tracks) {
+    const en = (t) => (t.languageCode || "").toLowerCase().startsWith("en");
+    return (
+      tracks.find((t) => en(t) && t.kind !== "asr") ||
+      tracks.find((t) => en(t)) ||
+      tracks.find((t) => t.kind !== "asr") ||
+      tracks[0]
+    );
+  }
+
+  // ---- transcript fetch ----------------------------------------------------
+  async function fetchCues(track) {
+    const url = new URL(track.baseUrl, window.location.origin);
+    url.searchParams.set("fmt", "json3"); // json3 = timings + text; the default is XML
+    const res = await fetch(url.toString(), { credentials: "include" });
+    if (!res.ok) throw new Error(`timedtext HTTP ${res.status}`);
+    const body = await res.text();
+    if (!body.trim()) throw new Error("timedtext returned an empty body");
+    return parseJson3(body);
+  }
+
+  // json3 shape: { events: [ { tStartMs, dDurationMs, segs: [ { utf8 } ] } ] }
+  // Events without `segs` are formatting/window directives — skip them.
+  function parseJson3(body) {
+    const data = JSON.parse(body);
+    return (data.events || [])
+      .filter((e) => Array.isArray(e.segs))
+      .map((e) => ({
+        start: e.tStartMs / 1000,
+        end: (e.tStartMs + (e.dDurationMs || 0)) / 1000,
+        text: e.segs.map((s) => s.utf8 || "").join("").replace(/\s+/g, " ").trim(),
+      }))
+      .filter((c) => c.text);
+  }
+
+  // ---- entry point for both routes ----------------------------------------
+  async function handlePlayerResponse(pr, via) {
+    const videoId = pr?.videoDetails?.videoId;
+    if (!videoId || videoId === lastVideoId) return;
+
+    const tracks = pr?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+    if (!tracks?.length) {
+      lastVideoId = videoId;
+      post("no-captions", { videoId, via });
+      return;
+    }
+
+    lastVideoId = videoId;
+    const track = pickTrack(tracks);
+    post("track-found", {
+      videoId,
+      via,
+      language: track.languageCode,
+      auto: track.kind === "asr",
+      available: tracks.map((t) => `${t.languageCode}${t.kind === "asr" ? "(auto)" : ""}`),
+    });
+
+    try {
+      const cues = await fetchCues(track);
+      post("transcript", {
+        videoId,
+        via,
+        language: track.languageCode,
+        auto: track.kind === "asr",
+        cues,
+      });
+    } catch (err) {
+      // If this ever fires, the fallback is to let the player request the track
+      // itself (turn CC on) and read it off the /api/timedtext hook below.
+      post("transcript-error", { videoId, via, message: String(err) });
+    }
+  }
+
+  // ---- route 1: window.ytInitialPlayerResponse -----------------------------
+  let inlinePlayerResponse = window.ytInitialPlayerResponse;
+  Object.defineProperty(window, "ytInitialPlayerResponse", {
+    configurable: true,
+    enumerable: true,
+    get: () => inlinePlayerResponse,
+    set: (value) => {
+      inlinePlayerResponse = value;
+      try {
+        handlePlayerResponse(value, "ytInitialPlayerResponse");
+      } catch (_) {}
+    },
+  });
+  // In case the assignment already happened before we got here.
+  if (inlinePlayerResponse) handlePlayerResponse(inlinePlayerResponse, "ytInitialPlayerResponse");
+
+  // ---- route 2: POST /youtubei/v1/player ----------------------------------
+  const nativeFetch = window.fetch;
+  window.fetch = function (...args) {
+    const promise = nativeFetch.apply(this, args);
+    try {
+      const input = args[0];
+      const url = typeof input === "string" ? input : input?.url || "";
+      if (url.includes("/youtubei/v1/player")) {
+        promise
+          .then((res) => res.clone().json())
+          .then((json) => handlePlayerResponse(json, "youtubei/player"))
+          .catch(() => {});
+      } else if (url.includes("/api/timedtext")) {
+        // Not used for the primary path — kept as a visible signal that the
+        // player fetched its own captions, which is the fallback source.
+        post("player-timedtext-seen", { url });
+      }
+    } catch (_) {}
+    return promise;
+  };
+})();
+</script>
+<script type="text/plain" id="src-scheduler">// Tracks video time precisely enough to stop playback on a chosen frame.
+//
+// NOT loaded by manifest.json yet — the subtitle spike is being verified on real
+// videos first. To enable it, list it AHEAD of src/content.js in the same
+// ISOLATED-world entry: content scripts in one entry share a scope, so the
+// `EnHintScheduler` binding below becomes visible to content.js.
+//
+// Decisions this encodes:
+//   • stop at the END of the cue containing the phrase (not at the phrase itself)
+//   • only auto-pause at or above a difficulty threshold, and at most once per gap
+//   • everything below the threshold is still reported, just without stopping
+
+const EnHintScheduler = (() => {
+  const MIN_PAUSE_GAP_MS = 20000; // at most one auto-pause per 20 seconds
+  const MIN_DIFFICULTY = 3;       // 1..5; below this we highlight but never stop
+  const STALE_AFTER_S = 1.0;      // if we are this far past a mark, we seeked over it
+
+  /**
+   * @param {object} opts
+   * @param {() => Array<{id:string, stopAt:number, difficulty:number}>} opts.getMarks
+   *        Marks MUST be sorted ascending by stopAt. stopAt is normally
+   *        cues[annotation.cueIndex].end.
+   * @param {(mark:any) => void} opts.onStop     called after the video is paused
+   * @param {(mark:any) => void} opts.onSkip     called for marks we passed without stopping
+   * @param {() => void} opts.onUserResume       called when the user resumes playback
+   */
+  function create({ getMarks, onStop, onSkip, onUserResume }) {
+    let player = null;
+    let video = null;
+    let rafId = 0;
+    let cursor = 0;                 // index of the next mark ahead of us
+    let lastPauseAt = -Infinity;
+    const fired = new Set();
+
+    // --- the clock ----------------------------------------------------------
+    // requestAnimationFrame, not the `timeupdate` event: timeupdate fires about
+    // four times a second, so a stop can land up to 250 ms late — visibly past
+    // the word. rAF reads currentTime every frame (~16 ms at 60 Hz), which is
+    // finer than the caption timings themselves.
+    //
+    // Reading currentTime every frame also means seeking, playback-rate changes
+    // and buffering need no special handling: the clock is always the truth.
+    // The one cost is that rAF is throttled to a stop in a background tab, where
+    // YouTube keeps playing audio. See the note at the bottom of this file.
+    function tick() {
+      rafId = requestAnimationFrame(tick);
+      if (!video || video.paused || video.seeking) return;
+
+      // Ads play through the same <video> element on an unrelated timeline, so
+      // every cue time is meaningless while one is showing.
+      if (player && player.classList.contains("ad-showing")) return;
+
+      const t = video.currentTime;
+      const marks = getMarks();
+
+      while (cursor < marks.length && marks[cursor].stopAt <= t) {
+        const mark = marks[cursor++];
+        if (fired.has(mark.id)) continue;
+        fired.add(mark.id);
+        // A mark far behind us was jumped over by a seek, not played through.
+        if (t - mark.stopAt > STALE_AFTER_S) continue;
+        consider(mark);
+      }
+    }
+
+    function consider(mark) {
+      if (mark.difficulty < MIN_DIFFICULTY) return void onSkip?.(mark);
+      const now = performance.now();
+      if (now - lastPauseAt < MIN_PAUSE_GAP_MS) return void onSkip?.(mark);
+      lastPauseAt = now;
+      video.pause();
+      onStop(mark);
+    }
+
+    // --- keeping the cursor honest -------------------------------------------
+    // The cursor is the only state that a seek invalidates. `fired` is
+    // deliberately NOT cleared: rewinding means the user wants to hear the line
+    // again, not to be interrupted by it again.
+    function resync() {
+      const t = video ? video.currentTime : 0;
+      const marks = getMarks();
+      cursor = 0;
+      while (cursor < marks.length && marks[cursor].stopAt <= t) cursor++;
+    }
+
+    // --- attachment ----------------------------------------------------------
+    // Scoped to #movie_player so we never pick up a preview or miniplayer video.
+    function attach() {
+      player = document.querySelector("#movie_player");
+      const next = player && player.querySelector("video");
+      if (!next || next === video) return Boolean(video);
+
+      if (video) removeListeners(video);
+      video = next;
+      video.addEventListener("seeked", resync);
+      video.addEventListener("ratechange", resync);
+      video.addEventListener("loadedmetadata", resync);
+      video.addEventListener("play", handlePlay);
+      resync();
+      return true;
+    }
+
+    function removeListeners(el) {
+      el.removeEventListener("seeked", resync);
+      el.removeEventListener("ratechange", resync);
+      el.removeEventListener("loadedmetadata", resync);
+      el.removeEventListener("play", handlePlay);
+    }
+
+    // The video element is the source of truth for play state, not a flag of
+    // ours — the user can always hit space while the overlay is up.
+    function handlePlay() {
+      onUserResume?.();
+    }
+
+    return {
+      start() {
+        if (rafId) return;
+        if (!attach()) {
+          setTimeout(() => this.start(), 500);
+          return;
+        }
+        rafId = requestAnimationFrame(tick);
+      },
+      stop() {
+        cancelAnimationFrame(rafId);
+        rafId = 0;
+        if (video) removeListeners(video);
+        video = null;
+        player = null;
+      },
+      // Call after the scan lands, or after switching video.
+      marksChanged: resync,
+      // Call when the overlay is dismissed.
+      resume() {
+        if (video && video.paused) video.play();
+      },
+      reset() {
+        fired.clear();
+        lastPauseAt = -Infinity;
+        resync();
+      },
+    };
+  }
+
+  return { create, MIN_PAUSE_GAP_MS, MIN_DIFFICULTY };
+})();
+
+// Background-tab caveat: rAF is suspended in a hidden tab while YouTube keeps
+// playing audio, so no stop fires until the tab is foregrounded again. That is
+// usually the behaviour you want. If listening-in-a-background-tab must also
+// stop, replace the rAF loop with a setTimeout armed at
+// (mark.stopAt - currentTime) / playbackRate * 1000, and re-arm it on seeked,
+// ratechange, play, pause and waiting — `waiting` especially, since a timer
+// keeps running while the video stalls on buffering.
+</script>
+<script type="text/plain" id="src-content">// Isolated-world half. Receives the transcript from src/main-world.js, caches it,
+// and (to prove the timing data is usable) tracks which cue is on screen right now.
+
+const CHANNEL = "en-hint";
+
+/** @type {{videoId:string, cues:Array<{start:number,end:number,text:string}>}|null} */
+let current = null;
+let cueIndex = -1;
+
+window.addEventListener("message", (event) => {
+  if (event.source !== window) return;
+  const msg = event.data;
+  if (!msg || msg.source !== CHANNEL) return;
+
+  switch (msg.type) {
+    case "track-found": {
+      const { language, auto, available, via } = msg.payload;
+      console.log(
+        `[en-hint] caption track: ${language}${auto ? " (auto-generated)" : ""} ` +
+          `via ${via} — available: ${available.join(", ")}`
+      );
+      break;
+    }
+    case "transcript": {
+      const { videoId, cues, language, auto } = msg.payload;
+      current = { videoId, cues };
+      cueIndex = -1;
+      console.log(
+        `[en-hint] transcript for ${videoId}: ${cues.length} cues, ` +
+          `${cues.length ? cues[cues.length - 1].end.toFixed(0) : 0}s of speech ` +
+          `(${language}${auto ? ", auto" : ""})`
+      );
+      console.log("[en-hint] first 5 cues:", cues.slice(0, 5));
+      chrome.storage.local.set({ [`transcript:${videoId}`]: msg.payload });
+      showBadge(`${cues.length} cues loaded`);
+      attachToVideo();
+      break;
+    }
+    case "no-captions":
+      console.warn(`[en-hint] video ${msg.payload.videoId} has no caption tracks`);
+      showBadge("no captions");
+      break;
+    case "transcript-error":
+      console.error("[en-hint] transcript fetch failed:", msg.payload.message);
+      showBadge("transcript fetch failed");
+      break;
+    case "player-timedtext-seen":
+      console.debug("[en-hint] player fetched its own timedtext (fallback source available)");
+      break;
+  }
+});
+
+// --- timing sync ------------------------------------------------------------
+// The whole point of reading the transcript up front: at any moment we can look
+// ahead or behind, and we know a cue is coming before the player renders it.
+
+let attachedVideo = null;
+
+function attachToVideo() {
+  const video = document.querySelector("video.html5-main-video, video");
+  if (!video) {
+    setTimeout(attachToVideo, 500);
+    return;
+  }
+  if (attachedVideo === video) return;
+  attachedVideo = video;
+  video.addEventListener("timeupdate", onTimeUpdate);
+}
+
+function onTimeUpdate() {
+  if (!current || !attachedVideo) return;
+  const t = attachedVideo.currentTime;
+  const i = findCue(current.cues, t);
+  if (i !== cueIndex) {
+    cueIndex = i;
+    if (i >= 0) {
+      const cue = current.cues[i];
+      showBadge(`${cue.start.toFixed(1)}s — ${cue.text}`);
+      console.debug("[en-hint] on screen:", cue.text);
+    }
+  }
+}
+
+// Binary search: cues are sorted by start time.
+function findCue(cues, t) {
+  let lo = 0;
+  let hi = cues.length - 1;
+  let found = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (cues[mid].start <= t) {
+      found = mid;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  return found >= 0 && t <= cues[found].end ? found : -1;
+}
+
+// --- tiny on-page readout so you can verify without opening devtools --------
+let badge = null;
+
+function showBadge(text) {
+  if (!badge) {
+    badge = document.createElement("div");
+    badge.style.cssText =
+      "position:fixed;z-index:99999;left:12px;bottom:12px;max-width:520px;" +
+      "padding:8px 12px;border-radius:8px;background:rgba(0,0,0,.82);color:#fff;" +
+      "font:13px/1.4 system-ui,sans-serif;pointer-events:none";
+    document.documentElement.appendChild(badge);
+  }
+  badge.textContent = `en-hint: ${text}`;
+}
+</script>
+
+<script type="module">
+  import { File } from "https://esm.sh/@pierre/diffs@1.2.10?bundle";
+
+  const options = {
+    theme: { light: "vitesse-light", dark: "vitesse-dark" },
+    themeType: "dark",
+    overflow: "wrap",
+  };
+
+  const views = [
+    { mount: "#code-manifest", id: "src-manifest", name: "manifest.json" },
+    { mount: "#code-mainworld", id: "src-mainworld", name: "src/main-world.js" },
+    { mount: "#code-content", id: "src-content", name: "src/content.js" },
+    { mount: "#code-scheduler", id: "src-scheduler", name: "src/scheduler.js" },
+  ];
+
+  for (const view of views) {
+    const wrapper = document.querySelector(view.mount);
+    const source = document.getElementById(view.id);
+    if (!wrapper || !source) continue;
+    new File(options).render({
+      containerWrapper: wrapper,
+      file: { name: view.name, contents: source.textContent },
+    });
+  }
+</script>
+
+</body>
+</html>

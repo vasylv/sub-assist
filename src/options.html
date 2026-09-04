@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>EN Hint — settings</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; padding: 32px 24px;
+    font: 15px/1.5 system-ui, -apple-system, sans-serif;
+    max-width: 620px;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: #8a8a8f; margin: 0 0 28px; }
+  fieldset { border: 1px solid rgba(128,128,128,.3); border-radius: 10px; padding: 18px 18px 6px; margin: 0 0 20px; }
+  legend { padding: 0 6px; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
+  label { display: block; margin-bottom: 16px; }
+  .label-text { display: block; font-weight: 600; margin-bottom: 4px; }
+  .help { display: block; color: #8a8a8f; font-size: 13px; margin-top: 4px; }
+  input[type="text"], input[type="password"], input[type="number"], select {
+    width: 100%; box-sizing: border-box; padding: 8px 10px; font: inherit;
+    border: 1px solid rgba(128,128,128,.4); border-radius: 7px; background: transparent; color: inherit;
+  }
+  button { font: inherit; padding: 9px 18px; border-radius: 7px; border: 1px solid rgba(128,128,128,.4);
+           background: transparent; color: inherit; cursor: pointer; }
+  button.primary { background: #ffd166; border-color: #ffd166; color: #1a1a1a; font-weight: 700; }
+  .actions { display: flex; align-items: center; gap: 12px; }
+  #saved { color: #2e9e5b; font-size: 14px; opacity: 0; transition: opacity .15s; }
+  #saved.show { opacity: 1; }
+  .warn { border-left: 3px solid #e0a800; padding: 10px 14px; background: rgba(224,168,0,.08);
+          border-radius: 0 7px 7px 0; font-size: 13.5px; margin-bottom: 24px; }
+</style>
+</head>
+<body>
+  <h1>EN Hint</h1>
+  <p class="sub">Pause a YouTube video, and the last three lines are explained.</p>
+
+  <p class="warn">
+    The key is stored in this browser profile only, and is used solely to call OpenAI from the
+    extension's service worker. Anyone with access to this Chrome profile can read it — use a key
+    with a spending limit.
+  </p>
+
+  <form id="form">
+    <fieldset>
+      <legend>OpenAI</legend>
+      <label>
+        <span class="label-text">API key</span>
+        <input type="password" id="apiKey" autocomplete="off" spellcheck="false" placeholder="sk-…">
+      </label>
+      <label>
+        <span class="label-text">Model</span>
+        <input type="text" id="model" spellcheck="false">
+        <span class="help">Any chat model that supports structured JSON output.</span>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>What counts as worth explaining</legend>
+      <label>
+        <span class="label-text">Your level</span>
+        <select id="level">
+          <option value="A2">A2 — elementary</option>
+          <option value="B1">B1 — intermediate</option>
+          <option value="B2">B2 — upper intermediate</option>
+          <option value="C1">C1 — advanced</option>
+        </select>
+        <span class="help">Explanations are cached per video and level, so changing this asks again.</span>
+      </label>
+    </fieldset>
+
+    <div class="actions">
+      <button type="submit" class="primary">Save</button>
+      <button type="button" id="clear">Clear cached explanations</button>
+      <span id="saved">Saved</span>
+    </div>
+  </form>
+
+  <script src="options.js"></script>
+</body>
+</html>

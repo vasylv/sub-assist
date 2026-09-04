@@ -1,0 +1,1057 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EN Hint — the transcript doesn't follow the video</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :root {
+    --bg:#0d0d0f; --panel:#151518; --panel-2:#1c1c20; --sunk:#0a0a0c;
+    --fg:#f2f2f4; --muted:rgba(242,242,244,.60); --faint:rgba(242,242,244,.38);
+    --ghost:rgba(242,242,244,.22);
+    --accent:#ffd166; --accent-dim:rgba(255,209,102,.16);
+    --line:rgba(242,242,244,.13); --line-2:rgba(242,242,244,.22);
+    --bad:#ff8f7a; --bad-dim:rgba(255,143,122,.13);
+    --good:#6fcb98; --good-dim:rgba(111,203,152,.12);
+    --info:#7fb8e6; --info-dim:rgba(127,184,230,.13);
+    --font:"YouTube Sans", Roboto, system-ui, -apple-system, sans-serif;
+    --mono:ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  html { background:var(--bg); color-scheme:dark; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+         font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1080px; margin:0 auto; padding:0 28px 120px; }
+  h1,h2,h3,h4 { margin:0; line-height:1.15; text-wrap:balance; }
+  h1 { font-size:clamp(31px,5vw,49px); font-weight:800; letter-spacing:-.025em; }
+  h2 { font-size:clamp(21px,2.7vw,27px); font-weight:700; letter-spacing:-.018em; }
+  h3 { font-size:16px; font-weight:700; letter-spacing:-.005em; }
+  h4 { font-size:12.5px; font-weight:700; }
+  p { margin:0; }
+  a { color:var(--accent); }
+  code { font-family:var(--mono); font-size:.86em; background:var(--sunk);
+         border:1px solid var(--line); border-radius:4px; padding:1px 5px; }
+  .eyebrow { font-family:var(--mono); font-size:11px; letter-spacing:.17em;
+             text-transform:uppercase; color:var(--faint); }
+  .lede { font-size:clamp(16px,2vw,19px); color:var(--muted); max-width:64ch; }
+  :where(.grid,.flex) > * { min-width:0; }
+  :where(p,li,td,th,h1,h2,h3,h4,dd,dt) { overflow-wrap:anywhere; }
+  svg { display:block; width:100%; height:auto; }
+
+  header { padding:74px 0 10px; display:flex; flex-direction:column; gap:18px; }
+  .quote { border-left:2px solid var(--accent); padding:5px 0 5px 18px; color:var(--fg);
+           font-size:17px; max-width:58ch; }
+  .quote span { color:var(--faint); display:block; font-size:12px; margin-top:7px;
+                font-family:var(--mono); letter-spacing:.04em; }
+
+  section { padding-top:68px; }
+  .sec-head { display:flex; flex-direction:column; gap:10px; margin-bottom:26px; }
+
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:22px; }
+  .card.sunk { background:var(--sunk); }
+  .grid { display:grid; gap:16px; }
+  .two { grid-template-columns:repeat(auto-fit,minmax(288px,1fr)); }
+  .three { grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); }
+
+  figure { margin:0; }
+  figcaption { font-family:var(--mono); font-size:12px; color:var(--faint);
+               line-height:1.6; margin-top:14px; }
+  figcaption b { color:var(--muted); font-weight:600; }
+
+  .tag { display:inline-flex; align-items:center; gap:6px; font-family:var(--mono);
+         font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+         padding:3px 8px; border-radius:999px; border:1px solid var(--line-2); color:var(--muted); }
+  .tag.bad  { color:var(--bad);  border-color:rgba(255,143,122,.4); background:var(--bad-dim); }
+  .tag.good { color:var(--good); border-color:rgba(111,203,152,.4); background:var(--good-dim); }
+  .tag.warn { color:var(--accent); border-color:rgba(255,209,102,.4); background:var(--accent-dim); }
+  .tag.info { color:var(--info); border-color:rgba(127,184,230,.4); background:var(--info-dim); }
+
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th { text-align:left; font-family:var(--mono); font-size:10.5px; letter-spacing:.14em;
+       text-transform:uppercase; color:var(--faint); font-weight:600;
+       padding:0 12px 10px 0; border-bottom:1px solid var(--line-2); }
+  td { padding:13px 12px 13px 0; border-bottom:1px solid var(--line); vertical-align:top;
+       color:var(--muted); }
+  td:first-child, th:first-child { padding-left:0; }
+  td strong { color:var(--fg); font-weight:600; }
+  td .ref { font-family:var(--mono); font-size:11.5px; color:var(--accent); display:block; margin-top:4px; }
+  .tw { overflow-x:auto; }
+
+  .num { display:flex; align-items:baseline; gap:10px; }
+  .num i { font-style:normal; font-family:var(--mono); font-size:11px; color:var(--accent);
+           border:1px solid rgba(255,209,102,.35); background:var(--accent-dim);
+           border-radius:5px; padding:1px 6px; flex:none; }
+
+  .step { display:grid; grid-template-columns:auto 1fr; gap:0 18px; }
+  .step .rail { display:flex; flex-direction:column; align-items:center; }
+  .step .bead { width:11px; height:11px; border-radius:50%; background:var(--accent);
+                margin-top:7px; flex:none; }
+  .step .wire { width:1px; flex:1; background:var(--line-2); margin:7px 0 0; }
+  .step > div:last-child { padding-bottom:30px; }
+  .step:last-child > div:last-child { padding-bottom:0; }
+
+  .difflabel { display:flex; flex-wrap:wrap; align-items:baseline; gap:10px; margin:30px 0 10px; }
+  .difflabel .path { font-family:var(--mono); font-size:12.5px; color:var(--fg); }
+  .difflabel .why { font-size:13px; color:var(--muted); flex:1 1 260px; }
+  .diffbox { border:1px solid var(--line); border-radius:10px; overflow:hidden;
+             background:var(--sunk); font-size:13px; }
+  .diffbox :where(pre,code) { font-family:var(--mono); }
+
+  dl.qa { margin:0; display:flex; flex-direction:column; gap:18px; }
+  dl.qa dt { font-weight:700; font-size:14.5px; color:var(--fg); margin-bottom:5px; }
+  dl.qa dd { margin:0; color:var(--muted); font-size:14px; }
+
+  form.ask { display:flex; flex-direction:column; gap:14px; }
+  form.ask label.opt { display:flex; gap:12px; align-items:flex-start; padding:15px 17px;
+      border:1px solid var(--line-2); border-radius:10px; background:var(--panel-2); cursor:pointer; }
+  form.ask label.opt:hover { border-color:var(--ghost); }
+  form.ask label.opt:has(input:checked) { border-color:var(--accent); background:var(--accent-dim); }
+  form.ask input[type=radio] { margin-top:4px; accent-color:var(--accent); flex:none; }
+  form.ask .optname { font-weight:700; display:block; }
+  form.ask .optdesc { color:var(--muted); font-size:13.5px; display:block; margin-top:3px; }
+  form.ask button { font:inherit; font-weight:700; padding:11px 22px; border-radius:8px;
+      border:1px solid var(--accent); background:var(--accent); color:#1a1a1a; cursor:pointer;
+      align-self:flex-start; }
+  form.ask button:hover { filter:brightness(1.08); }
+  .queued { color:var(--good); font-size:13px; }
+
+  .note { border-left:2px solid var(--line-2); padding-left:16px; color:var(--muted); font-size:14px; }
+  .note.warn { border-color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">EN Hint · bug analysis &amp; fix plan</p>
+  <h1>The transcript doesn't follow the video</h1>
+  <p class="quote">
+    “my plugin doesn't switch the script if new video is open.”
+    <span>reported 2026-09-03</span>
+  </p>
+  <p class="lede">
+    Open a second video and the extension keeps the first video's subtitles. Pause, and the card
+    explains lines from a video that is no longer on screen. Below: what the code actually does,
+    the one gate that drops the new video on the floor, and a fix in seven small patches.
+  </p>
+</header>
+
+<!-- ══════════════════════════════════ 1. HOW IT WORKS ══════════════════════════════════ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">01 — the mechanism</p>
+    <h2>A transcript has exactly one way in</h2>
+    <p class="lede">
+      Both halves of the extension are loaded once, at <code>document_start</code>, and stay alive
+      across YouTube's in-app navigation. So a session is never “started” by a page load — it is
+      started by a caption track list arriving in a player response, and by nothing else.
+    </p>
+  </div>
+
+  <figure class="card">
+    <svg viewBox="0 0 1000 340" role="img" aria-labelledby="fig1t fig1d">
+      <title id="fig1t">The only path that produces a transcript</title>
+      <desc id="fig1d">Two player-response sources funnel through one URL-settle gate into a session, which posts a transcript message to the isolated world. No navigation event feeds the pipeline.</desc>
+
+      <!-- world bands -->
+      <rect x="0" y="26" width="1000" height="176" rx="10" fill="rgba(127,184,230,.05)" stroke="rgba(127,184,230,.18)"/>
+      <text x="16" y="46" font-family="ui-monospace,monospace" font-size="10.5" letter-spacing="1.6" fill="var(--info)">MAIN WORLD · src/main-world.js</text>
+
+      <rect x="0" y="222" width="1000" height="102" rx="10" fill="rgba(255,209,102,.05)" stroke="rgba(255,209,102,.18)"/>
+      <text x="16" y="242" font-family="ui-monospace,monospace" font-size="10.5" letter-spacing="1.6" fill="var(--accent)">ISOLATED WORLD · src/content.js</text>
+
+      <g font-family="ui-monospace,monospace" font-size="11.5" fill="var(--fg)">
+        <!-- sources -->
+        <g id="src-inline">
+          <title>Route 1: the ytInitialPlayerResponse setter — hard page loads only</title>
+          <rect x="22" y="62" width="196" height="46" rx="8" fill="var(--panel-2)" stroke="var(--line-2)"/>
+          <text x="36" y="82">ytInitialPlayerResponse</text>
+          <text x="36" y="98" fill="var(--faint)" font-size="10.5">hard page load only</text>
+        </g>
+        <g id="src-fetch">
+          <title>Route 2: the fetch hook on /youtubei/v1/player — covers SPA navigation and prefetch</title>
+          <rect x="22" y="126" width="196" height="46" rx="8" fill="var(--panel-2)" stroke="var(--line-2)"/>
+          <text x="36" y="146">fetch /youtubei/v1/player</text>
+          <text x="36" y="162" fill="var(--faint)" font-size="10.5">SPA nav — and prefetch</text>
+        </g>
+
+        <!-- arrows into gate -->
+        <path d="M218 85 L262 85 L262 112 L296 112" fill="none" stroke="var(--line-2)" stroke-width="1.4"/>
+        <path d="M218 149 L262 149 L262 122 L296 122" fill="none" stroke="var(--line-2)" stroke-width="1.4"/>
+        <path d="M296 117 l-9 -4.5 v9 z" fill="var(--line-2)"/>
+
+        <!-- the gate -->
+        <g id="gate">
+          <title>main-world.js:336 — waitFor(() =&gt; watchedVideoId() === videoId, 1500). The single decision point.</title>
+          <rect x="302" y="80" width="184" height="74" rx="8" fill="var(--bad-dim)" stroke="var(--bad)" stroke-width="1.5"/>
+          <text x="318" y="103" fill="var(--bad)">URL settle gate</text>
+          <text x="318" y="120" fill="var(--muted)" font-size="10.5">watchedVideoId() === id ?</text>
+          <text x="318" y="136" fill="var(--muted)" font-size="10.5">1500 ms, then give up</text>
+          <text x="318" y="150" fill="var(--faint)" font-size="9.5">main-world.js:336</text>
+        </g>
+
+        <!-- pass -->
+        <path d="M486 100 L536 100" fill="none" stroke="var(--good)" stroke-width="1.4"/>
+        <path d="M536 100 l-9 -4.5 v9 z" fill="var(--good)"/>
+        <text x="492" y="92" fill="var(--good)" font-size="10">pass</text>
+
+        <!-- fail -->
+        <path d="M486 136 L536 136" fill="none" stroke="var(--bad)" stroke-width="1.4" stroke-dasharray="4 3"/>
+        <text x="492" y="152" fill="var(--bad)" font-size="10">fail</text>
+        <g id="drop">
+          <title>main-world.js:337 — `if (!onScreen) return;` The response is discarded and nothing is recorded.</title>
+          <circle cx="556" cy="136" r="15" fill="none" stroke="var(--bad)" stroke-width="1.5"/>
+          <path d="M549 129 L563 143 M563 129 L549 143" stroke="var(--bad)" stroke-width="1.6"/>
+          <text x="578" y="133" fill="var(--bad)" font-size="10.5">discarded</text>
+          <text x="578" y="147" fill="var(--faint)" font-size="9.5">nothing recorded — :337</text>
+        </g>
+
+        <!-- session -->
+        <g id="session">
+          <title>The session: pickTrack, provokeDownload, then post("transcript")</title>
+          <rect x="546" y="62" width="176" height="60" rx="8" fill="var(--panel-2)" stroke="var(--line-2)"/>
+          <text x="560" y="82">start session</text>
+          <text x="560" y="98" fill="var(--faint)" font-size="10.5">pick track · provoke</text>
+          <text x="560" y="113" fill="var(--faint)" font-size="10.5">player to download it</text>
+        </g>
+
+        <path d="M722 92 L768 92" fill="none" stroke="var(--line-2)" stroke-width="1.4"/>
+        <path d="M768 92 l-9 -4.5 v9 z" fill="var(--line-2)"/>
+
+        <g id="post">
+          <title>post("transcript", …) — a window.postMessage across the world boundary</title>
+          <rect x="778" y="62" width="196" height="60" rx="8" fill="var(--panel-2)" stroke="var(--line-2)"/>
+          <text x="792" y="82">post("transcript")</text>
+          <text x="792" y="98" fill="var(--faint)" font-size="10.5">postMessage across</text>
+          <text x="792" y="113" fill="var(--faint)" font-size="10.5">the world boundary</text>
+        </g>
+
+        <!-- down into isolated world -->
+        <path d="M876 122 L876 254 L806 254" fill="none" stroke="var(--line-2)" stroke-width="1.4"/>
+        <path d="M806 254 l9 -4.5 v9 z" fill="var(--line-2)"/>
+
+        <g id="cues">
+          <title>content.js:76 onTranscript — the only place `cues` is ever filled</title>
+          <rect x="600" y="258" width="200" height="52" rx="8" fill="var(--accent-dim)" stroke="rgba(255,209,102,.45)"/>
+          <text x="614" y="280" fill="var(--accent)">onTranscript → cues</text>
+          <text x="614" y="296" fill="var(--faint)" font-size="10.5">content.js:76 — the only filler</text>
+        </g>
+
+        <path d="M600 284 L556 284" fill="none" stroke="var(--line-2)" stroke-width="1.4"/>
+        <path d="M556 284 l9 -4.5 v9 z" fill="var(--line-2)"/>
+        <g id="card">
+          <rect x="360" y="258" width="188" height="52" rx="8" fill="var(--panel-2)" stroke="var(--line-2)"/>
+          <text x="374" y="280">pause → explain</text>
+          <text x="374" y="296" fill="var(--faint)" font-size="10.5">the card on the player</text>
+        </g>
+
+        <!-- the missing entrance -->
+        <g id="nomissing">
+          <title>Verified absent: grep finds no yt-navigate-finish, pushState, replaceState or popstate anywhere in src/</title>
+          <rect x="22" y="258" width="316" height="52" rx="8" fill="none" stroke="var(--bad)" stroke-width="1.4" stroke-dasharray="5 4"/>
+          <text x="36" y="280" fill="var(--bad)">no navigation listener</text>
+          <text x="36" y="296" fill="var(--faint)" font-size="10.5">nothing starts or resets a session</text>
+        </g>
+      </g>
+    </svg>
+    <figcaption>
+      <b>Verified by grep over <code>src/</code>:</b> no <code>yt-navigate-finish</code>,
+      no <code>pushState</code>/<code>replaceState</code> patch, no <code>popstate</code>.
+      The dashed box is a hole, not a component. Everything downstream of the red gate happens only
+      when a player response gets through it.
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ══════════════════════════════════ 2. THE BUG ══════════════════════════════════ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">02 — the failure</p>
+    <h2>YouTube asks about the next video before you go there</h2>
+    <p class="lede">
+      YouTube prefetches player responses — for the autoplay-next video, and for thumbnails you
+      hover. Those arrive while the URL still names the video you are watching, so the gate rejects
+      them. That rejection is correct. Throwing the response away is not: when you then navigate,
+      YouTube already has that response cached and never asks the server again.
+    </p>
+  </div>
+
+  <figure class="card">
+    <svg viewBox="0 0 1000 350" role="img" aria-labelledby="fig2t fig2d">
+      <title id="fig2t">Timeline of the dropped player response</title>
+      <desc id="fig2d">Three lanes over time. The player response for video B arrives while the URL still says A and is discarded. Later the URL becomes B but no second response arrives, so the isolated world keeps A's cues.</desc>
+
+      <!-- lane labels -->
+      <g font-family="ui-monospace,monospace" font-size="10.5" letter-spacing="1.4" fill="var(--faint)">
+        <text x="0" y="46">WHAT THE URL SAYS</text>
+        <text x="0" y="150">PLAYER RESPONSES</text>
+        <text x="0" y="268">content.js — cues</text>
+      </g>
+
+      <!-- time axis -->
+      <line x1="30" y1="322" x2="980" y2="322" stroke="var(--line-2)" stroke-width="1"/>
+      <g font-family="ui-monospace,monospace" font-size="10" fill="var(--faint)">
+        <text x="120" y="340" text-anchor="middle">watching A</text>
+        <text x="470" y="340" text-anchor="middle">autoplay / click</text>
+        <text x="800" y="340" text-anchor="middle">watching B</text>
+      </g>
+
+      <!-- URL lane -->
+      <g id="urlA">
+        <title>The URL still names video A while YouTube prefetches B</title>
+        <rect x="30" y="56" width="430" height="40" rx="7" fill="var(--panel-2)" stroke="var(--line-2)"/>
+        <text x="48" y="81" font-family="ui-monospace,monospace" font-size="12" fill="var(--fg)">watch?v=<tspan fill="var(--info)">A</tspan></text>
+      </g>
+      <g id="urlB">
+        <title>The navigation completes — the URL now names video B</title>
+        <rect x="474" y="56" width="506" height="40" rx="7" fill="var(--good-dim)" stroke="var(--good)"/>
+        <text x="492" y="81" font-family="ui-monospace,monospace" font-size="12" fill="var(--fg)">watch?v=<tspan fill="var(--good)">B</tspan></text>
+      </g>
+      <line x1="467" y1="46" x2="467" y2="330" stroke="var(--good)" stroke-width="1.2" stroke-dasharray="4 4"/>
+
+      <!-- response lane -->
+      <g id="prefetch">
+        <title>main-world.js fetch hook fires for B's player response — a prefetch, minutes before the navigation</title>
+        <rect x="150" y="160" width="196" height="46" rx="7" fill="var(--panel-2)" stroke="var(--info)"/>
+        <text x="165" y="180" font-family="ui-monospace,monospace" font-size="11.5" fill="var(--info)">player response: B</text>
+        <text x="165" y="196" font-family="ui-monospace,monospace" font-size="10" fill="var(--faint)">prefetch — hover or autoplay</text>
+      </g>
+
+      <!-- settle window -->
+      <g id="window">
+        <title>main-world.js:336 — the 1500 ms URL-settle window. The URL says A for all of it.</title>
+        <rect x="346" y="160" width="88" height="46" rx="6" fill="var(--bad-dim)" stroke="var(--bad)" stroke-dasharray="4 3"/>
+        <text x="390" y="178" font-family="ui-monospace,monospace" font-size="10" fill="var(--bad)" text-anchor="middle">1500 ms</text>
+        <text x="390" y="194" font-family="ui-monospace,monospace" font-size="9.5" fill="var(--faint)" text-anchor="middle">URL ≠ B</text>
+      </g>
+
+      <g id="dropped">
+        <title>main-world.js:337 — `if (!onScreen) return;` The only copy of B's caption track list is gone.</title>
+        <circle cx="462" cy="183" r="15" fill="none" stroke="var(--bad)" stroke-width="1.6"/>
+        <path d="M455 176 L469 190 M469 176 L455 190" stroke="var(--bad)" stroke-width="1.7"/>
+      </g>
+      <text x="352" y="230" font-family="ui-monospace,monospace" font-size="10.5" fill="var(--bad)">discarded — :337</text>
+
+      <!-- no second response -->
+      <g id="nosecond">
+        <title>YouTube serves the navigation from its own cache. No second /youtubei/v1/player request is made, so the hook never fires again.</title>
+        <rect x="560" y="160" width="330" height="46" rx="7" fill="none" stroke="var(--bad)" stroke-dasharray="5 4"/>
+        <text x="576" y="180" font-family="ui-monospace,monospace" font-size="11.5" fill="var(--bad)">no second response</text>
+        <text x="576" y="196" font-family="ui-monospace,monospace" font-size="10" fill="var(--faint)">YouTube serves B from its own cache</text>
+      </g>
+
+      <!-- cues lane -->
+      <g id="cuesA">
+        <title>content.js resets `cues` only inside a message handler. No message arrives, so A's cues survive the navigation.</title>
+        <rect x="30" y="278" width="950" height="34" rx="7" fill="var(--bad-dim)" stroke="var(--bad)"/>
+        <text x="48" y="300" font-family="ui-monospace,monospace" font-size="11.5" fill="var(--bad)">cues = A's subtitles &nbsp;·&nbsp; videoId = "A"</text>
+        <text x="962" y="300" font-family="ui-monospace,monospace" font-size="10" fill="var(--faint)" text-anchor="end">never reset</text>
+      </g>
+    </svg>
+    <figcaption>
+      <b>The two halves of the bug.</b> Above the dashed line: main-world.js drops the only copy of
+      B's track list. Below it: content.js resets <code>cues</code> only from inside a message
+      handler (<code>content.js:41, 45, 69</code>), so no message means no reset — A's subtitles stay,
+      and a pause on B is answered from A. The explanation is even cached under
+      <code>videoId</code> <code>"A"</code>.
+    </figcaption>
+  </figure>
+
+  <h3 style="margin-top:44px">What the code actually says</h3>
+  <div class="tw" style="margin-top:14px">
+  <table>
+    <thead><tr><th style="width:34%">Defect</th><th style="width:22%">Where</th><th>Consequence</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><div class="num"><i>1</i><strong>An early player response is discarded, not kept</strong></div></td>
+        <td><span class="ref">main-world.js:336–337</span></td>
+        <td>The caption track list for the video you are about to open is thrown away. If YouTube serves the navigation from cache, no replacement ever arrives.</td>
+      </tr>
+      <tr>
+        <td><div class="num"><i>2</i><strong>Nothing watches for navigation</strong></div></td>
+        <td><span class="ref">absent from src/</span></td>
+        <td>Neither world can start or reset a session on its own. Everything waits for a player response that may never come.</td>
+      </tr>
+      <tr>
+        <td><div class="num"><i>3</i><strong><code>cues</code> is reset only from a message handler</strong></div></td>
+        <td><span class="ref">content.js:41, 45, 69 → 86</span></td>
+        <td>Silence from the page world leaves the previous video's transcript in place. This is what makes the failure <em>wrong answers</em> rather than <em>no answers</em>.</td>
+      </tr>
+      <tr>
+        <td><div class="num"><i>4</i><strong><code>onTranscript</code> is missing the URL guard its siblings have</strong></div></td>
+        <td><span class="ref">content.js:40–41</span></td>
+        <td><code>no-captions</code> and <code>transcript-error</code> both check <code>videoId !== watchedVideoId()</code>. <code>transcript</code> does not, so a late transcript for A can land on B.</td>
+      </tr>
+      <tr>
+        <td><div class="num"><i>5</i><strong><code>lastVideoId</code> is one slot doing two jobs</strong></div></td>
+        <td><span class="ref">main-world.js:23, 173, 326</span></td>
+        <td>It is both the dedupe key and the fallback owner for captured cues. During a navigation a track whose URL lacks <code>v=</code> can be filed under the wrong video.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="card sunk" style="margin-top:26px">
+    <p class="eyebrow" style="margin-bottom:10px">Confirm it in 20 seconds</p>
+    <p style="color:var(--muted);font-size:14px">
+      The extension already logs every step. Open the console on a watch page, let it autoplay or
+      click through to the next video, and watch for
+      <code>[en-hint] track: …</code> followed by <code>[en-hint] N cues via …</code>.
+      <strong style="color:var(--fg)">If neither line prints for the new video, the diagnosis above is confirmed</strong>
+      — the player response never reached <code>handlePlayerResponse</code> with a matching URL.
+      A <code>[en-hint] caption response seen via fetch</code> line with no <code>track:</code> line
+      after it is the same signal.
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════ 3. THE FIX ══════════════════════════════════ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">03 — the proposal</p>
+    <h2>Park what arrives early, and notice the navigation</h2>
+    <p class="lede">
+      Four moves, in two layers. The page world stops destroying evidence and gains a way to act on
+      a navigation. The isolated world stops trusting that silence means nothing changed.
+    </p>
+  </div>
+
+  <div class="grid two">
+    <div class="card">
+      <div class="step">
+        <div class="rail"><span class="bead"></span><span class="wire"></span></div>
+        <div>
+          <h3>Park, don't drop</h3>
+          <p style="color:var(--muted);font-size:14px;margin-top:6px">
+            A response whose URL never settles goes into <code>parkedByVideo</code> instead of being
+            discarded. It is the only copy; keep it.
+          </p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="rail"><span class="bead"></span></div>
+        <div>
+          <h3>Watch for the navigation</h3>
+          <p style="color:var(--muted);font-size:14px;margin-top:6px">
+            On <code>yt-navigate-finish</code> plus a 500 ms poll backstop: clear the session, replay
+            the parked response for the new video, or re-post a transcript already built for it.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="step">
+        <div class="rail"><span class="bead"></span><span class="wire"></span></div>
+        <div>
+          <h3>Reset on navigation, not on a message</h3>
+          <p style="color:var(--muted);font-size:14px;margin-top:6px">
+            <code>content.js</code> clears its own <code>cues</code> the moment the URL changes. Even
+            if the page world stays silent forever, the wrong lines can never be sent.
+          </p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="rail"><span class="bead"></span></div>
+        <div>
+          <h3>Guard both ends</h3>
+          <p style="color:var(--muted);font-size:14px;margin-top:6px">
+            <code>onTranscript</code> gets the URL check its siblings already have, and
+            <code>explainAt</code> refuses to send when <code>videoId</code> no longer matches the URL.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <figure class="card" style="margin-top:26px">
+    <svg viewBox="0 0 1000 350" role="img" aria-labelledby="fig3t fig3d">
+      <title id="fig3t">The same timeline after the fix</title>
+      <desc id="fig3d">The prefetched response for B is parked rather than discarded. When the URL changes, the navigation watcher clears the session, replays the parked response, and the isolated world switches to B's cues.</desc>
+
+      <g font-family="ui-monospace,monospace" font-size="10.5" letter-spacing="1.4" fill="var(--faint)">
+        <text x="0" y="46">WHAT THE URL SAYS</text>
+        <text x="0" y="150">PLAYER RESPONSES</text>
+        <text x="0" y="268">content.js — cues</text>
+      </g>
+
+      <line x1="30" y1="322" x2="980" y2="322" stroke="var(--line-2)" stroke-width="1"/>
+      <g font-family="ui-monospace,monospace" font-size="10" fill="var(--faint)">
+        <text x="120" y="340" text-anchor="middle">watching A</text>
+        <text x="470" y="340" text-anchor="middle">autoplay / click</text>
+        <text x="800" y="340" text-anchor="middle">watching B</text>
+      </g>
+
+      <rect x="30" y="56" width="430" height="40" rx="7" fill="var(--panel-2)" stroke="var(--line-2)"/>
+      <text x="48" y="81" font-family="ui-monospace,monospace" font-size="12" fill="var(--fg)">watch?v=<tspan fill="var(--info)">A</tspan></text>
+      <rect x="474" y="56" width="506" height="40" rx="7" fill="var(--good-dim)" stroke="var(--good)"/>
+      <text x="492" y="81" font-family="ui-monospace,monospace" font-size="12" fill="var(--fg)">watch?v=<tspan fill="var(--good)">B</tspan></text>
+      <line x1="467" y1="46" x2="467" y2="330" stroke="var(--good)" stroke-width="1.2" stroke-dasharray="4 4"/>
+
+      <rect x="150" y="160" width="196" height="46" rx="7" fill="var(--panel-2)" stroke="var(--info)"/>
+      <text x="165" y="180" font-family="ui-monospace,monospace" font-size="11.5" fill="var(--info)">player response: B</text>
+      <text x="165" y="196" font-family="ui-monospace,monospace" font-size="10" fill="var(--faint)">prefetch — hover or autoplay</text>
+
+      <g id="parked">
+        <title>The response is stored in parkedByVideo instead of being discarded</title>
+        <rect x="346" y="160" width="106" height="46" rx="6" fill="var(--accent-dim)" stroke="var(--accent)"/>
+        <text x="399" y="179" font-family="ui-monospace,monospace" font-size="10.5" fill="var(--accent)" text-anchor="middle">parked</text>
+        <text x="399" y="195" font-family="ui-monospace,monospace" font-size="9.5" fill="var(--faint)" text-anchor="middle">parkedByVideo</text>
+      </g>
+
+      <g id="replay">
+        <title>onNavigation() clears the session and replays the parked response through handlePlayerResponse</title>
+        <path d="M452 183 L560 183" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <path d="M560 183 l-9 -4.5 v9 z" fill="var(--accent)"/>
+        <rect x="566" y="160" width="324" height="46" rx="7" fill="var(--good-dim)" stroke="var(--good)"/>
+        <text x="582" y="180" font-family="ui-monospace,monospace" font-size="11.5" fill="var(--good)">replayed on navigation → session for B</text>
+        <text x="582" y="196" font-family="ui-monospace,monospace" font-size="10" fill="var(--faint)">no second network request needed</text>
+      </g>
+
+      <g id="cuesSwap">
+        <title>content.js clears its cues on the navigation itself, then fills them from B's transcript</title>
+        <rect x="30" y="278" width="437" height="34" rx="7" fill="var(--panel-2)" stroke="var(--line-2)"/>
+        <text x="48" y="300" font-family="ui-monospace,monospace" font-size="11.5" fill="var(--muted)">cues = A's subtitles</text>
+        <rect x="474" y="278" width="120" height="34" rx="7" fill="var(--sunk)" stroke="var(--line-2)" stroke-dasharray="4 3"/>
+        <text x="534" y="300" font-family="ui-monospace,monospace" font-size="11" fill="var(--faint)" text-anchor="middle">cleared</text>
+        <rect x="602" y="278" width="378" height="34" rx="7" fill="var(--good-dim)" stroke="var(--good)"/>
+        <text x="620" y="300" font-family="ui-monospace,monospace" font-size="11.5" fill="var(--good)">cues = B's subtitles &nbsp;·&nbsp; videoId = "B"</text>
+      </g>
+    </svg>
+    <figcaption>
+      <b>The dashed amber arrow is the new path.</b> Nothing extra is requested from YouTube — the
+      response was already in hand, it was simply being thrown away. The grey <em>cleared</em> gap is
+      the isolated world's own reset: it happens on the navigation, so it does not depend on the
+      amber arrow arriving at all.
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ══════════════════════════════════ 4. THE PATCHES ══════════════════════════════════ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">04 — the change</p>
+    <h2>Seven focused patches</h2>
+    <p class="lede">
+      Each block below is a real excerpt of the file as it stands today against the proposed
+      replacement. Nothing outside these regions changes.
+    </p>
+  </div>
+
+  <h3 style="margin-top:34px;color:var(--info)">Page world — <span style="font-family:var(--mono);font-size:14px">src/main-world.js</span></h3>
+
+  <div class="difflabel">
+    <span class="tag info">Patch 1</span>
+    <span class="path">lines 23–35</span>
+    <span class="why">Split the one overloaded slot into a session id, an in-flight set, and two bounded caches.</span>
+  </div>
+  <div class="diffbox" id="d1"></div>
+
+  <div class="difflabel">
+    <span class="tag info">Patch 2</span>
+    <span class="path">line 173 — <code>captureTrack</code></span>
+    <span class="why">Cues with no <code>v=</code> in the URL should belong to the video on screen, not to whichever id the dedupe slot happens to hold.</span>
+  </div>
+  <div class="diffbox" id="d2"></div>
+
+  <div class="difflabel">
+    <span class="tag bad">Patch 3 — the bug</span>
+    <span class="path">lines 323–337 — <code>handlePlayerResponse</code></span>
+    <span class="why">Park the response instead of returning empty-handed, and split the session body out so a navigation can call it too.</span>
+  </div>
+  <div class="diffbox" id="d3"></div>
+
+  <div class="difflabel">
+    <span class="tag good">Patch 4 — new</span>
+    <span class="path">after <code>startSession</code></span>
+    <span class="why">The missing entrance: a navigation watcher that can begin a session without a fresh player response.</span>
+  </div>
+  <div class="diffbox" id="d4"></div>
+
+  <h3 style="margin-top:52px;color:var(--accent)">Isolated world — <span style="font-family:var(--mono);font-size:14px">src/content.js</span></h3>
+
+  <div class="difflabel">
+    <span class="tag warn">Patch 5</span>
+    <span class="path">lines 40–42 — message router</span>
+    <span class="why">Give <code>transcript</code> the same URL guard <code>no-captions</code> and <code>transcript-error</code> already have.</span>
+  </div>
+  <div class="diffbox" id="d5"></div>
+
+  <div class="difflabel">
+    <span class="tag good">Patch 6 — new</span>
+    <span class="path">after <code>resetVideo</code>, line 92</span>
+    <span class="why">The safety net. Clears the transcript on the navigation itself, so the wrong lines cannot be sent even if the page world never speaks again.</span>
+  </div>
+  <div class="diffbox" id="d6"></div>
+
+  <div class="difflabel">
+    <span class="tag warn">Patch 7</span>
+    <span class="path">lines 162–164 — <code>explainAt</code></span>
+    <span class="why">Last line of defence before anything reaches the network or the cache.</span>
+  </div>
+  <div class="diffbox" id="d7"></div>
+</section>
+
+<!-- ══════════════════════════════════ 5. RISKS ══════════════════════════════════ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">05 — before you say yes</p>
+    <h2>Risks and open questions</h2>
+  </div>
+
+  <dl class="qa">
+    <div class="card">
+      <dt><span class="tag bad" style="margin-right:9px">Risk</span>A navigation during <code>provokeDownload</code> restores captions on the wrong video</dt>
+      <dd>
+        <code>provokeDownload</code> can hold the player for up to 27 s (15 s waiting for
+        <code>#movie_player</code>, then 3 × 4 s of asking). Its <code>finally</code> block
+        unconditionally restores the viewer's previous caption track — on whatever video is on screen
+        by then. That is already true today, but starting sessions on navigation makes it far more
+        likely. The proposed guard is one line in the <code>finally</code>:
+        <code>if (watchedVideoId() !== videoId) return;</code> before the restore.
+        <strong style="color:var(--fg)">Not included in the seven patches above</strong> — say the word and I'll add it.
+      </dd>
+    </div>
+    <div class="card">
+      <dt><span class="tag warn" style="margin-right:9px">Question</span>Does <code>yt-navigate-finish</code> still fire?</dt>
+      <dd>
+        It is YouTube's own event and not a public API, so it can be renamed without notice. That is
+        why every patch pairs it with a 500 ms <code>location</code> poll — the poll alone is enough,
+        the event just makes the switch feel instant. If you would rather not add a second interval
+        timer (<code>scheduler.js</code> already runs one at 2 s), I can fold the check into that
+        existing loop instead.
+      </dd>
+    </div>
+    <div class="card">
+      <dt><span class="tag info" style="margin-right:9px">Note</span>Memory is now bounded — it was not before</dt>
+      <dd>
+        <code>capturedByVideo</code> grows for every video whose track the player downloads and is
+        never trimmed. The two new maps use a shared <code>remember()</code> helper capped at 12
+        entries. Applying the same helper to <code>capturedByVideo</code> is a one-line change
+        included in Patch 1's spirit but not in its diff — flag it if you want it.
+      </dd>
+    </div>
+    <div class="card">
+      <dt><span class="tag good" style="margin-right:9px">Bonus</span>Going back to a video becomes instant</dt>
+      <dd>
+        <code>transcriptByVideo</code> means returning to a video you already watched re-posts its
+        transcript immediately, with no second round of provoking the player into re-downloading the
+        track. This is not required to fix the reported bug — it falls out of having a navigation
+        watcher at all.
+      </dd>
+    </div>
+  </dl>
+</section>
+
+<!-- ══════════════════════════════════ 6. DECIDE ══════════════════════════════════ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">06 — your call</p>
+    <h2>How much of this should I build?</h2>
+    <p class="lede">
+      Pick one and queue it, or annotate anything above and send that instead.
+    </p>
+  </div>
+
+  <form class="ask card" data-lavish-question="scope" onsubmit="
+      event.preventDefault();
+      var f = new FormData(event.currentTarget);
+      var choice = f.get('scope');
+      var extras = f.getAll('extra');
+      if (!choice) return;
+      var msg = 'Implement the video-switching fix: ' + choice;
+      if (extras.length) msg += ' Also include these: ' + extras.join('; ') + '.';
+      window.lavish.queuePrompt(msg, {
+        tag: 'choice',
+        text: 'Scope: ' + choice + (extras.length ? ' (+' + extras.length + ' extras)' : ''),
+        element: event.currentTarget,
+        data: { question: 'scope', answer: choice, extras: extras }
+      });
+      document.getElementById('queued').textContent = 'Queued — press Send to Agent in the top bar.';
+    ">
+    <label class="opt">
+      <input type="radio" name="scope" value="all seven patches (page world + isolated world)" checked>
+      <span>
+        <span class="optname">All seven patches <span class="tag good" style="margin-left:8px">recommended</span></span>
+        <span class="optdesc">Fixes the cause and adds the safety net. New videos switch correctly whether the player response is fresh, prefetched, or already seen.</span>
+      </span>
+    </label>
+    <label class="opt">
+      <input type="radio" name="scope" value="only the isolated-world safety net (patches 5, 6 and 7)">
+      <span>
+        <span class="optname">Safety net only — patches 5, 6, 7</span>
+        <span class="optdesc">Smallest possible change, one file. The old video's lines are never explained again, but a prefetched video will sit on “reading subtitles…” until you reload the page.</span>
+      </span>
+    </label>
+    <label class="opt">
+      <input type="radio" name="scope" value="page-world fix only (patches 1 to 4)">
+      <span>
+        <span class="optname">Page world only — patches 1–4</span>
+        <span class="optdesc">Fixes the root cause but keeps content.js trusting the page world. If a session ever fails silently, the stale transcript comes back.</span>
+      </span>
+    </label>
+
+    <div style="border-top:1px solid var(--line);padding-top:16px;margin-top:4px;display:flex;flex-direction:column;gap:10px">
+      <p class="eyebrow">Also include</p>
+      <label style="display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--muted)">
+        <input type="checkbox" name="extra" value="the provokeDownload restore guard from the Risks section" style="margin-top:4px;accent-color:var(--accent)">
+        <span>the <code>provokeDownload</code> restore guard (stops it restoring captions on the wrong video)</span>
+      </label>
+      <label style="display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--muted)">
+        <input type="checkbox" name="extra" value="cap capturedByVideo with the same remember() helper" style="margin-top:4px;accent-color:var(--accent)">
+        <span>cap <code>capturedByVideo</code> with the same <code>remember()</code> helper</span>
+      </label>
+      <label style="display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--muted)">
+        <input type="checkbox" name="extra" value="fold the navigation poll into the existing scheduler.js 2s interval instead of adding new timers" style="margin-top:4px;accent-color:var(--accent)">
+        <span>fold the poll into <code>scheduler.js</code>'s existing 2 s interval instead of adding timers</span>
+      </label>
+    </div>
+
+    <button type="submit">Queue this answer</button>
+    <span class="queued" id="queued"></span>
+  </form>
+</section>
+
+</div>
+
+<!-- ════════════════ code payloads: plain text, read by the diff renderer ════════════════ -->
+
+<script type="text/plain" id="d1-old">  let lastVideoId = null;
+
+  const PLAYER_WAIT_MS = 15000; // how long to wait for #movie_player to exist
+  const MODULE_GRACE_MS = 1500; // how long to let the captions module report itself
+  const PROVOKE_ATTEMPTS = 3; // the first ask can land before the player is listening
+  const PROVOKE_WAIT_MS = 4000; // per attempt
+  const URL_SETTLE_MS = 1500; // how long pushState may lag a player response
+
+  // Caption tracks the player has downloaded, keyed by video id. Populated
+  // continuously by the network hooks, so a track that arrives BEFORE we start
+  // looking for it is kept rather than thrown away — the common case when the
+  // viewer already has subtitles switched on.
+  const capturedByVideo = new Map();
+</script>
+
+<script type="text/plain" id="d1-new">  // The video the isolated world currently holds a transcript for, and the ids
+  // being set up right now. `lastVideoId` was one slot doing both jobs, which is
+  // why a player response could only ever be acted on once.
+  let sessionVideoId = null;
+  const inFlight = new Set();
+
+  const PLAYER_WAIT_MS = 15000; // how long to wait for #movie_player to exist
+  const MODULE_GRACE_MS = 1500; // how long to let the captions module report itself
+  const PROVOKE_ATTEMPTS = 3; // the first ask can land before the player is listening
+  const PROVOKE_WAIT_MS = 4000; // per attempt
+  const URL_SETTLE_MS = 1500; // how long pushState may lag a player response
+  const NAV_POLL_MS = 500; // backstop for YouTube's own navigation event
+  const KEEP = 12; // a long session hovers over a lot of thumbnails
+
+  // Caption tracks the player has downloaded, keyed by video id. Populated
+  // continuously by the network hooks, so a track that arrives BEFORE we start
+  // looking for it is kept rather than thrown away — the common case when the
+  // viewer already has subtitles switched on.
+  const capturedByVideo = new Map();
+
+  // Player responses for a video the viewer had not reached yet. YouTube
+  // prefetches these — the autoplay-next video, a hovered thumbnail — and then
+  // serves the navigation out of its own cache without asking the server again.
+  // Dropping one was dropping the only copy we would ever see.
+  const parkedByVideo = new Map();
+
+  // Transcripts already built, so coming back to a video is instant and does not
+  // provoke the player into downloading the same track twice.
+  const transcriptByVideo = new Map();
+
+  // Bounded insert. A Map iterates in insertion order, so the oldest entry is
+  // the first key out.
+  function remember(map, key, value) {
+    map.delete(key);
+    map.set(key, value);
+    for (const oldest of map.keys()) {
+      if (map.size <= KEEP) break;
+      map.delete(oldest);
+    }
+  }
+</script>
+
+<script type="text/plain" id="d2-old">    if (!cues.length) return;
+
+    const videoId = videoIdOf(url) || lastVideoId;
+    if (!videoId) return;
+</script>
+
+<script type="text/plain" id="d2-new">    if (!cues.length) return;
+
+    // A response with no `v=` belongs to whatever is on screen. It used to fall
+    // back to the dedupe slot, which during a navigation names the video the
+    // viewer just left.
+    const videoId = videoIdOf(url) || watchedVideoId();
+    if (!videoId) return;
+</script>
+
+<script type="text/plain" id="d3-old">  // ---- entry point ---------------------------------------------------------
+  async function handlePlayerResponse(pr, via) {
+    const videoId = pr && pr.videoDetails && pr.videoDetails.videoId;
+    if (!videoId || videoId === lastVideoId) return;
+
+    // YouTube fetches player responses for videos nobody is watching: sidebar
+    // hover previews, the prefetch of what plays next, ads. Acting on one means
+    // provoking #movie_player — which is playing something else — for a track it
+    // will never download, and the failure that follows used to tear down the
+    // session of the video actually on screen.
+    //
+    // The URL is the authority on what is playing. An in-app navigation can
+    // update it a moment after the response arrives, so it gets that moment.
+    const onScreen = await waitFor(() => watchedVideoId() === videoId, URL_SETTLE_MS);
+    if (!onScreen) return;
+
+    const tracks =
+      pr.captions &&
+      pr.captions.playerCaptionsTracklistRenderer &&
+      pr.captions.playerCaptionsTracklistRenderer.captionTracks;
+
+    if (!tracks || !tracks.length) {
+      lastVideoId = videoId;
+      post("no-captions", { videoId, via });
+      return;
+    }
+
+    lastVideoId = videoId;
+    const track = pickTrack(tracks);
+</script>
+
+<script type="text/plain" id="d3-new">  // ---- entry point ---------------------------------------------------------
+  async function handlePlayerResponse(pr, via) {
+    const videoId = pr && pr.videoDetails && pr.videoDetails.videoId;
+    if (!videoId) return;
+    if (videoId === sessionVideoId || inFlight.has(videoId)) return;
+
+    // YouTube fetches player responses for videos nobody is watching: sidebar
+    // hover previews, the prefetch of what plays next, ads. Acting on one means
+    // provoking #movie_player — which is playing something else — for a track it
+    // will never download, and the failure that follows used to tear down the
+    // session of the video actually on screen.
+    //
+    // The URL is the authority on what is playing. An in-app navigation can
+    // update it a moment after the response arrives, so it gets that moment —
+    // and when the moment passes the response is PARKED, not dropped. YouTube
+    // serves the navigation to that video from its own cache, so a discarded
+    // response is very often the last one we will ever see for it.
+    const onScreen = await waitFor(() => watchedVideoId() === videoId, URL_SETTLE_MS);
+    if (!onScreen) {
+      remember(parkedByVideo, videoId, { pr, via });
+      return;
+    }
+
+    inFlight.add(videoId);
+    try {
+      await startSession(videoId, pr, via);
+    } finally {
+      inFlight.delete(videoId);
+    }
+  }
+
+  // Split out of handlePlayerResponse so the navigation watcher below can start a
+  // session from a parked response, without a second trip through the URL gate.
+  async function startSession(videoId, pr, via) {
+    const tracks =
+      pr.captions &&
+      pr.captions.playerCaptionsTracklistRenderer &&
+      pr.captions.playerCaptionsTracklistRenderer.captionTracks;
+
+    if (!tracks || !tracks.length) {
+      sessionVideoId = videoId;
+      post("no-captions", { videoId, via });
+      return;
+    }
+
+    sessionVideoId = videoId;
+    const track = pickTrack(tracks);
+</script>
+
+<script type="text/plain" id="d4-old">    post("transcript", {
+      videoId,
+      via: source,
+      language: track.languageCode,
+      auto: track.kind === "asr",
+      cues,
+    });
+  }
+
+  // ---- route 1: window.ytInitialPlayerResponse -----------------------------
+</script>
+
+<script type="text/plain" id="d4-new">    const payload = {
+      videoId,
+      via: source,
+      language: track.languageCode,
+      auto: track.kind === "asr",
+      cues,
+    };
+    remember(transcriptByVideo, videoId, payload);
+    post("transcript", payload);
+  }
+
+  // ---- navigation ----------------------------------------------------------
+  // Nothing here used to notice a navigation. A session could begin only when a
+  // player response happened to arrive while the URL already named that video —
+  // so a video whose response came early, and whose navigation YouTube then
+  // served from its own cache, never got a session at all. The isolated world
+  // was left holding the previous video's transcript, which is what "the script
+  // does not switch" looks like from the outside.
+  let seenVideoId = watchedVideoId();
+
+  function onNavigation() {
+    const videoId = watchedVideoId();
+    if (videoId === seenVideoId) return;
+    seenVideoId = videoId;
+
+    // Whatever session exists belongs to the video that just left the screen.
+    sessionVideoId = null;
+    if (!videoId) return;
+
+    // Already built once — hand it straight back rather than provoking the
+    // player into downloading the same track again.
+    const known = transcriptByVideo.get(videoId);
+    if (known) {
+      sessionVideoId = videoId;
+      post("transcript", known);
+      return;
+    }
+
+    // The response arrived before the viewer did. This is the copy that used to
+    // be thrown away.
+    const parked = parkedByVideo.get(videoId);
+    if (parked) {
+      parkedByVideo.delete(videoId);
+      handlePlayerResponse(parked.pr, parked.via + " (parked)");
+      return;
+    }
+    // Otherwise a fresh player response is still on its way and the hooks below
+    // will pick it up.
+  }
+
+  // yt-navigate-finish is YouTube's own event and fires the moment the SPA
+  // settles. It is not a public API, so the poll is the backstop for the day it
+  // is renamed — the poll alone is enough; the event just makes it feel instant.
+  window.addEventListener("yt-navigate-finish", onNavigation);
+  setInterval(onNavigation, NAV_POLL_MS);
+
+  // ---- route 1: window.ytInitialPlayerResponse -----------------------------
+</script>
+
+<script type="text/plain" id="d5-old">  switch (msg.type) {
+    case "transcript":
+      onTranscript(msg.payload);
+      break;
+    case "no-captions":
+      if (msg.payload.videoId !== watchedVideoId()) break;
+</script>
+
+<script type="text/plain" id="d5-new">  switch (msg.type) {
+    case "transcript":
+      // The same guard the two handlers below already have: a transcript that
+      // finished building after the viewer moved on belongs to nothing.
+      if (msg.payload.videoId !== watchedVideoId()) break;
+      onTranscript(msg.payload);
+      break;
+    case "no-captions":
+      if (msg.payload.videoId !== watchedVideoId()) break;
+</script>
+
+<script type="text/plain" id="d6-old">function resetVideo(nextId) {
+  videoId = nextId;
+  cues = [];
+  isAuto = false;
+  requestToken++;
+  hideCard();
+}
+</script>
+
+<script type="text/plain" id="d6-new">function resetVideo(nextId) {
+  videoId = nextId;
+  cues = [];
+  isAuto = false;
+  requestToken++;
+  hideCard();
+}
+
+// --- following the viewer between videos ------------------------------------
+// A transcript belongs to one video. Nothing here used to notice a navigation:
+// resetVideo ran only from a message handler, so when src/main-world.js had
+// nothing to say about the new video — its player response having arrived before
+// the URL changed — the previous video's cues simply stayed, and a pause on the
+// new video was answered with lines from the old one.
+//
+// This resets on the navigation itself. Whatever the page world does or fails to
+// do, the wrong lines can no longer be sent.
+const NAV_POLL_MS = 500;
+let seenVideoId = watchedVideoId();
+
+function onNavigation() {
+  const next = watchedVideoId();
+  if (next === seenVideoId) return;
+  seenVideoId = next;
+
+  resetVideo(next);
+  playback.reattach(); // the player swaps the <video> element on navigation
+  if (next) setStatus("reading subtitles…", "ok");
+}
+
+// yt-navigate-finish is YouTube's own; the poll is the backstop for the day it
+// is renamed.
+window.addEventListener("yt-navigate-finish", onNavigation);
+setInterval(onNavigation, NAV_POLL_MS);
+</script>
+
+<script type="text/plain" id="d7-old">async function explainAt(time) {
+  if (!cues.length) return;
+  const lines = linesAt(time);
+  if (!lines) return;
+</script>
+
+<script type="text/plain" id="d7-new">async function explainAt(time) {
+  if (!cues.length) return;
+  // These cues belong to the video named in the URL, or they belong to nothing.
+  // Without this, a stale transcript is explained AND cached under the wrong id.
+  if (videoId !== watchedVideoId()) return;
+  const lines = linesAt(time);
+  if (!lines) return;
+</script>
+
+<script type="module">
+  import { FileDiff } from "https://esm.sh/@pierre/diffs@1.2.10?bundle";
+
+  const options = {
+    theme: { light: "github-light", dark: "github-dark" },
+    themeType: "dark",
+    overflow: "wrap",
+    diffStyle: "unified",
+  };
+
+  const text = (id) => document.getElementById(id).textContent.replace(/^\n/, "");
+
+  const patches = [
+    ["d1", "src/main-world.js"],
+    ["d2", "src/main-world.js"],
+    ["d3", "src/main-world.js"],
+    ["d4", "src/main-world.js"],
+    ["d5", "src/content.js"],
+    ["d6", "src/content.js"],
+    ["d7", "src/content.js"],
+  ];
+
+  for (const [id, name] of patches) {
+    try {
+      new FileDiff(options).render({
+        containerWrapper: document.getElementById(id),
+        oldFile: { name, contents: text(id + "-old") },
+        newFile: { name, contents: text(id + "-new") },
+      });
+    } catch (err) {
+      console.error("diff render failed for " + id, err);
+      document.getElementById(id).textContent = "diff failed to render — see console";
+    }
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EN Hint — explain on pause</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :root {
+    --bg:#0d0d0f; --panel:#151518; --panel-2:#1c1c20; --sunk:#0a0a0c;
+    --fg:#f2f2f4; --muted:rgba(242,242,244,.60); --faint:rgba(242,242,244,.38);
+    --accent:#ffd166; --accent-dim:rgba(255,209,102,.16);
+    --line:rgba(242,242,244,.13); --line-2:rgba(242,242,244,.22);
+    --gone:#ff8f7a; --gone-dim:rgba(255,143,122,.13);
+    --kept:#6fcb98; --kept-dim:rgba(111,203,152,.12);
+    --new:#7fb8e6; --new-dim:rgba(127,184,230,.13);
+    --font:"YouTube Sans", Roboto, system-ui, -apple-system, sans-serif;
+    --mono:ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  html { background:var(--bg); }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+         font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1080px; margin:0 auto; padding:0 28px 110px; }
+  h1,h2,h3,h4 { margin:0; line-height:1.15; text-wrap:balance; }
+  h1 { font-size:clamp(32px,5vw,50px); font-weight:800; letter-spacing:-.025em; }
+  h2 { font-size:clamp(21px,2.7vw,27px); font-weight:700; letter-spacing:-.018em; }
+  h3 { font-size:16px; font-weight:700; letter-spacing:-.005em; }
+  h4 { font-size:13px; font-weight:700; }
+  p { margin:0; }
+  a { color:var(--accent); }
+  code { font-family:var(--mono); font-size:.86em; background:var(--sunk);
+         border:1px solid var(--line); border-radius:4px; padding:1px 5px; }
+  .eyebrow { font-family:var(--mono); font-size:11px; letter-spacing:.17em;
+             text-transform:uppercase; color:var(--faint); }
+  .lede { font-size:clamp(16px,2vw,19px); color:var(--muted); max-width:62ch; }
+  :where(.grid,.flex) > * { min-width:0; }
+  :where(p,li,td,th,h1,h2,h3,h4) { overflow-wrap:anywhere; }
+  svg { display:block; width:100%; height:auto; }
+
+  header { padding:72px 0 12px; display:flex; flex-direction:column; gap:16px; }
+  .quote { border-left:2px solid var(--accent); padding:4px 0 4px 18px; color:var(--fg);
+           font-size:17px; max-width:58ch; }
+  .quote span { color:var(--muted); display:block; font-size:13px; margin-top:6px; font-family:var(--mono); }
+
+  section { padding-top:66px; }
+  .sec-head { display:flex; flex-direction:column; gap:9px; margin-bottom:24px; }
+
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:22px; }
+  .grid { display:grid; gap:16px; }
+  .two { grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
+  .three { grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }
+
+  .flow { display:flex; flex-direction:column; gap:14px; }
+  .flow h3 { display:flex; align-items:center; gap:9px; }
+  .dot { width:8px; height:8px; border-radius:50%; flex:none; }
+  .dot.old { background:var(--gone); } .dot.new { background:var(--kept); }
+  figcaption { font-family:var(--mono); font-size:12px; color:var(--faint);
+               line-height:1.55; margin-top:12px; }
+
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  .scroll { overflow-x:auto; border:1px solid var(--line); border-radius:12px; }
+  th,td { text-align:left; padding:12px 16px; border-bottom:1px solid var(--line); vertical-align:top; }
+  thead th { font-size:11px; font-family:var(--mono); letter-spacing:.13em; text-transform:uppercase;
+             color:var(--faint); font-weight:500; background:var(--sunk); white-space:nowrap; }
+  tbody tr:last-child td { border-bottom:0; }
+  td.k { font-family:var(--mono); font-size:12.5px; color:var(--fg); white-space:nowrap; }
+  .pill { display:inline-block; font-family:var(--mono); font-size:10.5px; letter-spacing:.08em;
+          text-transform:uppercase; padding:2px 8px; border-radius:999px; white-space:nowrap; }
+  .pill.gone { background:var(--gone-dim); color:var(--gone); }
+  .pill.kept { background:var(--kept-dim); color:var(--kept); }
+  .pill.new  { background:var(--new-dim);  color:var(--new); }
+
+  /* ---- in-player mockup, using the extension's own tokens ---- */
+  .player { background:#000; border:1px solid var(--line); border-radius:12px; overflow:hidden;
+            position:relative; aspect-ratio:16/9; min-height:300px;
+            background-image:linear-gradient(150deg,#1d2430 0%,#0e1116 55%,#161b22 100%); }
+  .player .cc { position:absolute; left:50%; transform:translateX(-50%); bottom:74px;
+                background:rgba(8,8,8,.78); color:#fff; font-size:15px; padding:5px 10px;
+                border-radius:3px; text-align:center; max-width:78%; }
+  .player .bar { position:absolute; left:0; right:0; bottom:0; height:38px;
+                 background:linear-gradient(transparent,rgba(0,0,0,.75)); display:flex;
+                 align-items:center; gap:14px; padding:0 14px; }
+  .player .bar i { font-style:normal; color:#fff; opacity:.9; font-size:14px; }
+  .player .prog { position:absolute; left:0; right:0; bottom:38px; height:3px; background:rgba(255,255,255,.28); }
+  .player .prog b { display:block; height:100%; width:42%; background:#f00; }
+
+  .enh-card { position:absolute; left:16px; bottom:56px; width:min(400px,calc(100% - 32px));
+              background:rgba(16,16,18,.94); color:#f2f2f4; border:1px solid rgba(242,242,244,.14);
+              border-radius:14px; padding:16px 18px; box-shadow:0 18px 48px rgba(0,0,0,.5);
+              backdrop-filter:blur(3px); }
+  .enh-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+  .enh-kind { font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:#ffd166; font-weight:700; }
+  .enh-src { font-size:11px; color:rgba(242,242,244,.5); font-family:var(--mono); }
+  .enh-line { font-size:13px; color:rgba(242,242,244,.62); margin-bottom:12px; line-height:1.5; }
+  .enh-line em { font-style:normal; color:#f2f2f4; background:rgba(255,209,102,.17);
+                 border-radius:3px; padding:0 3px; }
+  .enh-item { display:flex; flex-direction:column; gap:3px; padding:9px 0;
+              border-top:1px solid rgba(242,242,244,.10); }
+  .enh-term { font-size:14.5px; font-weight:700; }
+  .enh-term small { font-weight:400; font-size:11px; color:#ffd166; margin-left:8px;
+                    letter-spacing:.08em; text-transform:uppercase; }
+  .enh-mean { font-size:13px; color:rgba(242,242,244,.72); line-height:1.5; }
+  .enh-tr { font-size:13px; color:#ffd166; }
+  .enh-foot { display:flex; gap:10px; align-items:center; margin-top:12px;
+              font-size:11px; color:rgba(242,242,244,.45); font-family:var(--mono); }
+  .skel { height:11px; border-radius:4px; background:rgba(242,242,244,.13); }
+
+  .decided { background:var(--kept-dim); border:1px solid rgba(111,203,152,.30); border-radius:12px;
+             padding:18px 20px; margin-top:6px; }
+  .decided div > b { display:block; font-size:14.5px; margin-bottom:3px; }
+  .decided div > span { font-size:13.5px; color:var(--muted); line-height:1.5; }
+  .enh-line .ctx { color:rgba(242,242,244,.34); }
+  .legend { display:flex; gap:16px; flex-wrap:wrap; font-family:var(--mono); font-size:11px;
+            color:var(--faint); margin-top:10px; }
+  .legend b { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:6px; }
+  ul.plain { margin:0; padding-left:19px; display:flex; flex-direction:column; gap:8px; color:var(--muted); font-size:14px; }
+  ul.plain b, .risk b { color:var(--fg); }
+  .risk { display:flex; flex-direction:column; gap:6px; }
+  .risk .tag { font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--gone); }
+  .risk p { font-size:14px; color:var(--muted); }
+
+  pre { margin:0; background:var(--sunk); border:1px solid var(--line); border-radius:10px;
+        padding:16px 18px; overflow-x:auto; font-family:var(--mono); font-size:12.5px;
+        line-height:1.65; color:#dfe4ea; }
+  pre .c { color:var(--faint); } pre .s { color:#ffd166; } pre .n { color:#7fb8e6; }
+
+  footer { margin-top:70px; padding-top:26px; border-top:1px solid var(--line);
+           color:var(--faint); font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <span class="eyebrow">EN Hint &middot; proposed pivot</span>
+    <h1>Explain what I just heard</h1>
+    <p class="lede">Stop analysing the whole video up front. Keep manual control of playback, and whenever you pause, explain the last three lines in plain English &mdash; the idioms, the words worth knowing, the references &mdash; with ten seconds of dialogue behind them as context, so the model reads them the way you heard them.</p>
+    <blockquote class="quote">
+      &ldquo;For LLM is it too hard to know what word is unknown to me.&rdquo;
+      <span>&mdash; the reason the up-front scan goes away</span>
+    </blockquote>
+
+    <div class="decided">
+      <span class="eyebrow" style="color:var(--kept)">&#10003; Decided in review</span>
+      <div class="grid two" style="gap:14px; margin-top:12px">
+        <div><b>Send ten seconds, explain the last three lines.</b><span>The wider window is context only &mdash; it disambiguates the idiom without being explained itself.</span></div>
+        <div><b>Any pause fires it, immediately.</b><span>No hold, no hotkey to learn. Pressing pause <em>is</em> the request.</span></div>
+        <div><b>English only &mdash; no translation.</b><span>Explanation is the product. No target language, no <code>translation</code> field, no setting for it.</span></div>
+        <div><b>Idioms, hard words, and references.</b><span>Three kinds of item. No whole&#8209;line translation.</span></div>
+        <div style="grid-column:1/-1"><b>The automatic pausing is removed entirely.</b><span>Not behind a toggle. The scheduler&rsquo;s mark logic, the up&#8209;front scan, the chunker and two settings all go, so nothing half&#8209;built is left to maintain.</span></div>
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">The shape of the change</span>
+      <h2>The pause becomes the trigger</h2>
+      <p class="lede">Captions are still read from the player&rsquo;s own download &mdash; that part is unchanged. What changes is that the cue list now stays on your machine until you ask for something.</p>
+    </div>
+
+    <div class="grid two">
+      <figure class="card flow">
+        <h3><span class="dot old"></span>Today &mdash; guess everything, up front</h3>
+        <svg viewBox="0 0 420 232" role="img" aria-labelledby="oldTitle">
+          <title id="oldTitle">Today: the whole transcript is sent to the model when the video loads, producing sixty marks that pause the video automatically.</title>
+          <defs>
+            <marker id="aOld" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M0 0 L10 5 L0 10 z" fill="var(--gone)"/>
+            </marker>
+          </defs>
+          <g font-family="ui-monospace, monospace" font-size="11" fill="var(--muted)">
+            <rect id="o1" x="0" y="0" width="420" height="34" rx="8" fill="var(--sunk)" stroke="var(--line)"/>
+            <text x="14" y="21" fill="var(--fg)">video loads</text>
+            <text x="406" y="21" text-anchor="end">t = 0</text>
+
+            <line x1="30" y1="34" x2="30" y2="54" stroke="var(--gone)" stroke-width="1.5" marker-end="url(#aOld)"/>
+
+            <rect id="o2" x="0" y="58" width="420" height="34" rx="8" fill="var(--panel-2)" stroke="var(--line)"/>
+            <text x="14" y="79" fill="var(--fg)">1542 cues captured</text>
+
+            <line x1="30" y1="92" x2="30" y2="112" stroke="var(--gone)" stroke-width="1.5" marker-end="url(#aOld)"/>
+
+            <rect id="o3" x="0" y="116" width="420" height="46" rx="8" fill="var(--gone-dim)" stroke="var(--gone)"/>
+            <text x="14" y="136" fill="var(--gone)">ENTIRE transcript &#8594; OpenAI</text>
+            <text x="14" y="153">chunked at 12,000 chars &middot; 1&ndash;3 calls, in parallel</text>
+
+            <line x1="30" y1="162" x2="30" y2="182" stroke="var(--gone)" stroke-width="1.5" marker-end="url(#aOld)"/>
+
+            <rect id="o4" x="0" y="186" width="420" height="46" rx="8" fill="var(--panel-2)" stroke="var(--line)"/>
+            <text x="14" y="206" fill="var(--fg)">up to 60 marks &#8594; the video pauses itself</text>
+            <text x="14" y="223">at whatever the model guessed was hard for you</text>
+          </g>
+        </svg>
+        <figcaption>Every word is paid for whether or not you needed it, and the model decides when you get interrupted.</figcaption>
+      </figure>
+
+      <figure class="card flow">
+        <h3><span class="dot new"></span>Proposed &mdash; answer what you actually asked</h3>
+        <svg viewBox="0 0 420 232" role="img" aria-labelledby="newTitle">
+          <title id="newTitle">Proposed: the cue list stays local and nothing is sent until you press pause, at which point ten seconds of dialogue go to the model and only its last three lines are explained.</title>
+          <defs>
+            <marker id="aNew" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M0 0 L10 5 L0 10 z" fill="var(--kept)"/>
+            </marker>
+          </defs>
+          <g font-family="ui-monospace, monospace" font-size="11" fill="var(--muted)">
+            <rect x="0" y="0" width="420" height="34" rx="8" fill="var(--sunk)" stroke="var(--line)"/>
+            <text x="14" y="21" fill="var(--fg)">video loads</text>
+            <text x="406" y="21" text-anchor="end">t = 0</text>
+
+            <line x1="30" y1="34" x2="30" y2="54" stroke="var(--kept)" stroke-width="1.5" marker-end="url(#aNew)"/>
+
+            <rect id="n2" x="0" y="58" width="420" height="46" rx="8" fill="var(--kept-dim)" stroke="var(--kept)"/>
+            <text x="14" y="78" fill="var(--kept)">1542 cues captured &mdash; and kept right here</text>
+            <text x="14" y="95">zero requests to OpenAI &middot; you watch normally</text>
+
+            <line x1="30" y1="104" x2="30" y2="124" stroke="var(--kept)" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#aNew)"/>
+
+            <rect id="n3" x="0" y="128" width="420" height="34" rx="8" fill="var(--accent-dim)" stroke="var(--accent)"/>
+            <text x="14" y="149" fill="var(--accent)">&#9208;&#65038; you press pause</text>
+
+            <line x1="30" y1="162" x2="30" y2="182" stroke="var(--kept)" stroke-width="1.5" marker-end="url(#aNew)"/>
+
+            <rect id="n4" x="0" y="186" width="420" height="46" rx="8" fill="var(--panel-2)" stroke="var(--line)"/>
+            <text x="14" y="206" fill="var(--fg)">10s of dialogue &#8594; OpenAI &#8594; a card, in ~1s</text>
+            <text x="14" y="223">only the last 3 lines get explained &middot; ~90 tokens in</text>
+          </g>
+        </svg>
+        <figcaption>The pause <em>is</em> the signal that something was unclear. Nothing else has to be inferred.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Same video, both ways</span>
+      <h2>What it costs, concretely</h2>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th></th><th>Today</th><th>Proposed</th></tr></thead>
+        <tbody>
+          <tr><td class="k">first request</td><td>the moment the video loads</td><td>the first time you pause</td></tr>
+          <tr><td class="k">tokens sent</td><td>the whole transcript &mdash; ~3,000 words for a 20&#8209;minute talk</td><td>~10 seconds of dialogue, ~35 words, per pause</td></tr>
+          <tr><td class="k">a video you never pause</td><td>1&ndash;3 calls, fully paid</td><td>nothing</td></tr>
+          <tr><td class="k">a video you pause 15 times</td><td>1&ndash;3 calls</td><td>15 tiny calls &mdash; still less input in total</td></tr>
+          <tr><td class="k">what the model sees</td><td>everything, with no idea where you struggled</td><td>the ten seconds around the moment you stopped</td></tr>
+          <tr><td class="k">who decides what is hard</td><td>the model, from your CEFR level</td><td>you, by pressing pause</td></tr>
+          <tr><td class="k">who controls playback</td><td>the extension, at 60 chosen marks</td><td>you, always</td></tr>
+          <tr><td class="k">wait you can feel</td><td>none &mdash; results arrive before you need them</td><td>~1&ndash;2s after each pause <span class="pill new">new risk</span></td></tr>
+          <tr><td class="k">cache</td><td>one scan per (video, level, model)</td><td>one entry per (video, last cue index, level, model)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">The new interaction</span>
+      <h2>What you see when you pause</h2>
+      <p class="lede">The card no longer dims the video or blocks it &mdash; you paused on purpose, so nothing needs to be taken away from you. It sits above the controls and leaves on <code>Esc</code> or on play.</p>
+    </div>
+    <div class="grid two">
+      <div>
+        <div class="player">
+          <div class="cc">it totally went over my head, I was winging it</div>
+          <div class="prog"><b></b></div>
+          <div class="bar"><i>&#9654;</i><i>&#128266;</i><i>7:12 / 18:40</i><i style="margin-left:auto">CC &#9881;</i></div>
+          <div class="enh-card">
+            <div class="enh-head"><span class="enh-kind">last 3 lines</span><span class="enh-src">7:02 &ndash; 7:12</span></div>
+            <p class="enh-line"><span class="ctx">&ldquo;They walked us through the whole architecture&hellip;&rdquo;</span> &ldquo;…so the whole explanation <em>went over my head</em>, honestly.&rdquo; &ldquo;I was completely <em>winging it</em>.&rdquo;</p>
+            <div class="enh-item">
+              <span class="enh-term">go over someone&rsquo;s head <small>idiom</small></span>
+              <span class="enh-mean">To be too difficult for someone to understand. Usually about an explanation, not a person.</span>
+            </div>
+            <div class="enh-item">
+              <span class="enh-term">wing it <small>phrasal verb</small></span>
+              <span class="enh-mean">To improvise, with no preparation &mdash; and to admit it.</span>
+            </div>
+            <div class="enh-foot"><span>Esc to close</span><span>&middot;</span><span>&#8635; explain again</span></div>
+          </div>
+        </div>
+        <div class="legend"><span><b style="background:rgba(242,242,244,.34)"></b>context, sent but never explained</span><span><b style="background:#f2f2f4"></b>the three lines being explained</span></div>
+        <figcaption>Mocked in the extension&rsquo;s own tokens from <code>src/overlay.css</code>. Explanations only &mdash; English in, English out.</figcaption>
+      </div>
+
+      <div class="grid" style="gap:16px; align-content:start">
+        <div class="card">
+          <h3 style="margin-bottom:10px">The instant state</h3>
+          <div class="enh-card" style="position:static; width:100%; bottom:auto; left:auto; box-shadow:none">
+            <div class="enh-head"><span class="enh-kind">last 3 lines</span><span class="enh-src">reading…</span></div>
+            <p class="enh-line"><span class="ctx">&ldquo;They walked us through the whole architecture…&rdquo;</span> &ldquo;…so the whole explanation went over my head, honestly.&rdquo; &ldquo;I was completely winging it.&rdquo;</p>
+            <div class="enh-item"><div class="skel" style="width:52%"></div><div class="skel" style="width:88%; margin-top:6px"></div></div>
+            <div class="enh-item"><div class="skel" style="width:44%"></div><div class="skel" style="width:76%; margin-top:6px"></div></div>
+          </div>
+          <p style="font-size:13.5px; color:var(--muted); margin-top:12px">The lines are already local, so they render on the same frame as the pause. Only the explanations wait on the network.</p>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:10px">When there is nothing to say</h3>
+          <ul class="plain">
+            <li><b>Every word is ordinary.</b> The card says so in one line and closes itself after a moment, rather than inventing difficulty.</li>
+            <li><b>No captions on the video.</b> There is nothing to explain; the panel already reports this.</li>
+            <li><b>Paused during an ad.</b> Ignored &mdash; ad timelines have nothing to do with cue times.</li>
+            <li><b>Paused in silence.</b> No cue is playing and none ended in the last ten seconds, so there is nothing to send.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Implementation</span>
+      <h2>What happens to each file</h2>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>File</th><th></th><th>What changes</th></tr></thead>
+        <tbody>
+          <tr><td class="k">src/main-world.js</td><td><span class="pill kept">unchanged</span></td>
+              <td>Keeps capturing the caption track from the player&rsquo;s own download. The cue list is still needed &mdash; it is how we know which two lines just played &mdash; it simply stops being shipped anywhere.</td></tr>
+          <tr><td class="k">src/scheduler.js</td><td><span class="pill gone">gutted</span></td>
+              <td>The mark cursor, <code>minDifficulty</code>, <code>minGapMs</code>, <code>fired</code> and the auto-pause in <code>consider()</code> all go. What survives is the useful part: attaching to the <code>&lt;video&gt;</code> across in-app navigations, and the <code>ad-showing</code> guard. It becomes a playback watcher that fires on the <code>pause</code> event and reports <code>currentTime</code>, ignoring pauses raised while <code>ad-showing</code> or <code>seeking</code>.</td></tr>
+          <tr><td class="k">src/background.js</td><td><span class="pill new">reworked</span></td>
+              <td><code>scan</code> becomes <code>explain</code>. Gone: <code>chunkCues</code>, <code>CHUNK_CHARS</code>, <code>MAX_ANNOTATIONS</code>, <code>clean()</code>&rsquo;s cue re-anchoring and difficulty clamping. New: a context/target prompt, a smaller schema, a cache keyed on the last cue index, and a filter that drops any term the model lifted out of the context lines.</td></tr>
+          <tr><td class="k">src/content.js</td><td><span class="pill new">reworked</span></td>
+              <td>Drops the annotation list, the panel of everything found, and the difficulty-based skipping. Gains: a pause handler, a cue lookup that walks back three cues and then ten seconds, an in-flight request it can abort when you resume, and the non-modal card.</td></tr>
+          <tr><td class="k">src/options.html/js</td><td><span class="pill new">reworked</span></td>
+              <td>Purely subtractive. <span class="pill gone">out</span> &ldquo;Stop at difficulty&rdquo; and &ldquo;Minimum gap&rdquo; &mdash; nothing auto-stops any more. Nothing is added: no language setting, since explanations are English only. <code>level</code> stays, because it still tells the model what counts as non-trivial <em>for you</em>.</td></tr>
+          <tr><td class="k">src/overlay.css</td><td><span class="pill new">reworked</span></td>
+              <td>The dimming modal becomes the anchored card above. The panel styles go with the panel &mdash; the auto-pause removal takes the list of everything found with it.</td></tr>
+          <tr><td class="k">manifest.json</td><td><span class="pill kept">unchanged</span></td><td>Same permissions, same worlds, same injection points.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">The request</span>
+      <h2>What goes to the model, and what comes back</h2>
+      <p class="lede">One small structured call per pause. The strict JSON schema stays &mdash; it is what makes the card renderable without guessing.</p>
+    </div>
+    <div class="grid two">
+      <div class="card">
+        <h4 style="color:var(--faint); font-family:var(--mono); letter-spacing:.13em; margin-bottom:12px">SENT</h4>
+<pre><span class="c">// system</span>
+The learner is at <span class="n">B1</span>. They paused here because
+something was unclear. Explain the idiomatic
+expressions, any word a <span class="n">B1</span> learner would not
+know, and any cultural reference they may miss.
+Answer in English. Do not translate anything.
+Say nothing about words they already know.
+
+<span class="c">// The CONTEXT lines are there so you read the
+// TARGET lines correctly. Never explain a term
+// that appears only in CONTEXT.
+// Captions are auto-generated: they may be
+// mis-transcribed. Do not explain a mishearing.</span>
+
+<span class="c">// user</span>
+CONTEXT
+<span class="c">[410] they walked us through the whole</span>
+<span class="c">      architecture in about four slides</span>
+TARGET
+<span class="s">[411] and honestly?</span>
+<span class="s">[412] so the whole explanation went over my</span>
+<span class="s">      head.</span>
+<span class="s">[413] I was completely winging it.</span></pre>
+      </div>
+      <div class="card">
+        <h4 style="color:var(--faint); font-family:var(--mono); letter-spacing:.13em; margin-bottom:12px">RETURNED</h4>
+<pre>{
+  <span class="s">"items"</span>: [
+    {
+      <span class="s">"term"</span>: <span class="s">"go over someone's head"</span>,
+      <span class="s">"kind"</span>: <span class="s">"idiom"</span>,
+      <span class="s">"meaning"</span>: <span class="s">"Too difficult to understand.</span>
+<span class="s">                  Said of an explanation."</span>
+    },
+    {
+      <span class="s">"term"</span>: <span class="s">"wing it"</span>,
+      <span class="s">"kind"</span>: <span class="s">"phrasal_verb"</span>,
+      <span class="s">"meaning"</span>: <span class="s">"To improvise, unprepared."</span>
+    }
+  ]
+}</pre>
+        <p style="font-size:13.5px; color:var(--muted); margin-top:14px">The <code>CONTEXT</code> block is every cue that overlaps the ten seconds before the pause, minus the three targets. On a fast talker that is three or four extra lines; on a slow one it is often empty, and the block is omitted entirely.</p>
+        <p style="font-size:13.5px; color:var(--muted); margin-top:10px"><code>kind</code> is one of <code>idiom</code>, <code>phrasal_verb</code>, <code>word</code>, <code>slang</code>, <code>reference</code> &mdash; it drives the small label on each row. Two fields, no third: there is no <code>translation</code>. An empty <code>items</code> array is a valid, meaningful answer, and the card says so rather than inventing difficulty.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Before you commit to this</span>
+      <h2>Risks and failure modes</h2>
+    </div>
+    <div class="grid three">
+      <div class="card risk"><span class="tag" style="color:var(--accent)">accepted</span><b>Not every pause is a question</b>
+        <p>You decided any pause fires it. So the card <em>will</em> appear when you stopped to read a slide or answer the door. The mitigations are that it never blocks the video, it costs about a tenth of a cent, and <code>Esc</code> or pressing play clears it. If it grates in practice, the hotkey&#8209;only trigger is a two&#8209;line change.</p></div>
+      <div class="card risk"><span class="tag">latency</span><b>You are now waiting on the network</b>
+        <p>Today the answer is ready before you need it. From now on there is a visible ~1&ndash;2s gap after every pause. The lines render instantly to cover it, but a slow or rate&#8209;limited key will be felt in a way it never was before &mdash; and with an immediate trigger, it is felt on <em>every</em> pause, not just the ones you meant.</p></div>
+      <div class="card risk"><span class="tag">quality</span><b>Context can leak into the answer</b>
+        <p>The ten&#8209;second window fixes misread idioms, but models are eager to be helpful: asked for context and given it, they will start explaining words from it. The prompt forbids it and the schema cannot enforce it, so the code should drop any returned <code>term</code> that does not appear in the three target lines &mdash; the same defensive check <code>clean()</code> does today for cue indices.</p></div>
+      <div class="card risk"><span class="tag">data</span><b>Auto-captions lie</b>
+        <p>ASR mishears words, and the model will happily explain a word that was never said. The prompt is told when captions are auto-generated, but this gets more visible when a single line is the whole request.</p></div>
+      <div class="card risk"><span class="tag">migration</span><b>Old cache goes stale</b>
+        <p>Existing <code>scan:</code> keys in <code>chrome.storage.local</code> become unreadable by the new code. They should be swept on upgrade, not left to sit.</p></div>
+      <div class="card risk"><span class="tag">scope</span><b>The vocabulary list still is not built</b>
+        <p>The README lists an add-to-vocabulary button as unbuilt. This pivot makes it more valuable, not less &mdash; but it stays out of scope unless you say otherwise.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Settled &mdash; nothing left open</span>
+      <h2>The order to build it in</h2>
+      <p class="lede">Every decision is made. These steps are ordered so the extension keeps working at the end of each one, rather than being broken in the middle.</p>
+    </div>
+    <div class="grid" style="gap:14px">
+      <div class="card" style="display:grid; grid-template-columns:34px 1fr; gap:0 18px; align-items:start">
+        <span class="num" style="font-family:var(--mono); font-size:12px; color:var(--accent)">01</span>
+        <div><h3>Teach the scheduler to report pauses</h3>
+        <p style="font-size:14px; color:var(--muted); margin-top:6px">Add a <code>pause</code> listener beside the existing rAF loop, guarded on <code>ad-showing</code> and <code>seeking</code>. Nothing else changes yet, so the current behaviour is still intact and the trigger can be verified on its own in the console.</p></div>
+      </div>
+      <div class="card" style="display:grid; grid-template-columns:34px 1fr; gap:0 18px; align-items:start">
+        <span class="num" style="font-family:var(--mono); font-size:12px; color:var(--accent)">02</span>
+        <div><h3>Add <code>explain</code> to the service worker</h3>
+        <p style="font-size:14px; color:var(--muted); margin-top:6px">New message type, new prompt with the CONTEXT/TARGET split, new two-field schema, cache keyed on the last cue index. <code>scan</code> stays alive alongside it for now, so both can be compared on the same video.</p></div>
+      </div>
+      <div class="card" style="display:grid; grid-template-columns:34px 1fr; gap:0 18px; align-items:start">
+        <span class="num" style="font-family:var(--mono); font-size:12px; color:var(--accent)">03</span>
+        <div><h3>Build the card, wire the pause to it</h3>
+        <p style="font-size:14px; color:var(--muted); margin-top:6px">Cue lookup walking back three cues and then ten seconds; the lines render immediately, the items stream in behind them. The request aborts when you press play. Includes the defensive filter that drops any term absent from the three target lines.</p></div>
+      </div>
+      <div class="card" style="display:grid; grid-template-columns:34px 1fr; gap:0 18px; align-items:start">
+        <span class="num" style="font-family:var(--mono); font-size:12px; color:var(--accent)">04</span>
+        <div><h3>Delete the old path</h3>
+        <p style="font-size:14px; color:var(--muted); margin-top:6px">Only once step 3 works: <code>scan</code>, <code>chunkCues</code>, <code>CHUNK_CHARS</code>, <code>MAX_ANNOTATIONS</code>, the mark cursor and <code>consider()</code>, the panel, the two settings, and a sweep of stale <code>scan:</code> keys from <code>chrome.storage.local</code>. The README loses the auto-pause behaviour section and gains this one.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>Verified against <code>src/main-world.js</code>, <code>src/content.js</code>, <code>src/background.js</code>, <code>src/scheduler.js</code>, <code>src/options.js</code> and <code>src/overlay.css</code> at the current working tree. Token and cost figures come from <code>CHUNK_CHARS = 12000</code> and the README&rsquo;s own estimate of ~3,000 words for a 20&#8209;minute talk.</footer>
+</div>
+
+</body>
+</html>

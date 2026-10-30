@@ -24,9 +24,31 @@ function trace(step, detail) {
   else console.log(head, TRACE_CSS, "", detail);
 }
 
-const TARGET_CUES = 3; // lines actually explained
-const CONTEXT_SECONDS = 10; // extra dialogue sent so the model reads them right
 const SILENCE_S = 10; // paused this long after the last line means nothing to explain
+
+// How much of the dialogue a pause sends. Both are the viewer's, set in the
+// options page (src/settings.js holds the defaults and the bounds).
+//
+// Storage is asynchronous, so these start at the defaults and are corrected a
+// tick later. A pause inside that tick still works; it just uses the defaults.
+let targetLines = EnHintSettings.DEFAULTS.targetLines;
+let contextSeconds = EnHintSettings.DEFAULTS.contextSeconds;
+
+function applySettings(s) {
+  if (s.targetLines === targetLines && s.contextSeconds === contextSeconds) return;
+  targetLines = s.targetLines;
+  contextSeconds = s.contextSeconds;
+  trace("settings changed", { targetLines, contextSeconds });
+}
+
+EnHintSettings.read().then(applySettings);
+
+// Saving the options page must not need a reload of every open YouTube tab.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local") return;
+  if (!("targetLines" in changes) && !("contextSeconds" in changes)) return;
+  EnHintSettings.read().then(applySettings);
+});
 
 // The video the viewer is on. Anything reported for a different one is about a
 // hover preview or a prefetch, and must never touch the running session.
@@ -183,9 +205,12 @@ function linesAt(time) {
   // spoken line well behind. There is nothing they just heard.
   if (time - cues[last].end > SILENCE_S) return null;
 
-  const from = Math.max(0, last - (TARGET_CUES - 1));
+  const from = Math.max(0, last - (targetLines - 1));
 
-  const windowStart = time - CONTEXT_SECONDS;
+  // Measured back from the first explained line, not from the pause. The two
+  // settings are knobs the viewer turns separately, so asking for more lines
+  // must not silently eat the context window they asked for.
+  const windowStart = cues[from].start - contextSeconds;
   let ctxFrom = from;
   while (ctxFrom > 0 && cues[ctxFrom - 1].end > windowStart) ctxFrom--;
 
@@ -290,7 +315,7 @@ function ensureRoot() {
   root.innerHTML = `
     <div class="enh-card" role="dialog" aria-live="polite" hidden>
       <div class="enh-card-head">
-        <span class="enh-kind">last ${TARGET_CUES} lines</span>
+        <span class="enh-kind"></span>
         <span class="enh-time"></span>
         <button class="enh-close" type="button" aria-label="Close">&times;</button>
       </div>
@@ -320,6 +345,10 @@ function showCard(lines) {
   const el = ensureRoot();
   if (!el) return;
 
+  // Near the start of a video there are fewer lines than asked for, so the
+  // header counts what was actually sent rather than the setting.
+  const n = lines.target.length;
+  el.querySelector(".enh-kind").textContent = n === 1 ? "last line" : `last ${n} lines`;
   el.querySelector(".enh-time").textContent =
     `${formatTime(lines.start)} – ${formatTime(lines.end)}`;
 

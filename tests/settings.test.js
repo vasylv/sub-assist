@@ -105,3 +105,12 @@ test("grouping examples keep their inner indentation", () => {
   const own = "- “a lot of” → one part.\n  → not “a” / “lot of”";
   assert.equal(S.normalise({ groupingExamples: `\n${own}\n\n` }).groupingExamples, own);
 });
+
+test("the assistant is on unless explicitly switched off", () => {
+  assert.equal(S.normalise({}).enabled, true);
+  assert.equal(S.normalise({ enabled: true }).enabled, true);
+  assert.equal(S.normalise({ enabled: false }).enabled, false);
+  for (const garbled of [null, 0, "", "false", "off", undefined]) {
+    assert.equal(S.normalise({ enabled: garbled }).enabled, true, String(garbled));
+  }
+});

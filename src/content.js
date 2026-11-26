@@ -39,17 +39,32 @@ let contextSeconds = EnHintSettings.DEFAULTS.contextSeconds;
 let fontFamily = EnHintSettings.DEFAULTS.fontFamily;
 let fontSize = EnHintSettings.DEFAULTS.fontSize;
 
-const UI_KEYS = ["targetLines", "contextSeconds", "fontFamily", "fontSize"];
+// Switched from the toolbar popup. Off means a pause explains nothing and costs nothing. The transcript is still
+// read, so switching back on works on the spot, mid-video.
+let enabled = EnHintSettings.DEFAULTS.enabled;
+
+const UI_KEYS = ["enabled", "targetLines", "contextSeconds", "fontFamily", "fontSize"];
 
 function applySettings(s) {
-  const current = { targetLines, contextSeconds, fontFamily, fontSize };
+  const current = { enabled, targetLines, contextSeconds, fontFamily, fontSize };
   if (UI_KEYS.every((k) => s[k] === current[k])) return;
+  const switched = s.enabled !== enabled;
+  enabled = s.enabled;
   targetLines = s.targetLines;
   contextSeconds = s.contextSeconds;
   fontFamily = s.fontFamily;
   fontSize = s.fontSize;
   if (root) applyFont(root);
-  trace("settings changed", { targetLines, contextSeconds, fontFamily: fontFamily || "(YouTube)", fontSize });
+  trace("settings changed", { enabled, targetLines, contextSeconds, fontFamily: fontFamily || "(YouTube)", fontSize });
+  if (switched) applyEnabled();
+}
+
+// Off: drop any card and any reply still in flight, and hide the status pill
+// (nothing it says applies while switched off). A root built later picks the
+// state up in ensureRoot.
+function applyEnabled() {
+  if (!enabled) dismiss();
+  if (root) root.toggleAttribute("data-disabled", !enabled);
 }
 
 // An empty family removes the property, which falls back to YouTube's font in
@@ -259,6 +274,10 @@ function linesAt(time) {
 }
 
 async function explainAt(time) {
+  if (!enabled) {
+    trace("paused, but the assistant is switched off", { at: time.toFixed(1) + "s" });
+    return;
+  }
   if (!cues.length) {
     trace("paused, but there is no transcript yet", { at: time.toFixed(1) + "s", videoId });
     return;
@@ -347,6 +366,7 @@ function ensureRoot() {
       <span class="enh-status"></span>
     </div>`;
   applyFont(root);
+  root.toggleAttribute("data-disabled", !enabled);
   player.appendChild(root);
   root.querySelector(".enh-close").addEventListener("click", dismiss);
   return root;

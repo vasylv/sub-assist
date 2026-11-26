@@ -59,6 +59,18 @@ async function explain({ videoId, index, target, context, auto }) {
   return { ok: true, ...parseExplanation(content), cached: false };
 }
 
+// "off" on the toolbar icon while the assistant is disabled, so it is visible
+// from any tab, not only from inside a YouTube player.
+async function updateBadge() {
+  const { enabled } = await EnHintSettings.read();
+  await chrome.action.setBadgeBackgroundColor({ color: "#6b6b70" });
+  await chrome.action.setBadgeText({ text: enabled ? "" : "off" });
+}
+updateBadge();
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && "enabled" in changes) updateBadge();
+});
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "explain") {
     explain(message)

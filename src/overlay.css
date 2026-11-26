@@ -193,3 +193,8 @@
 
 /* Never sit on top of the card. */
 .enh-card:not([hidden]) ~ .enh-panel { display: none; }
+
+/* ---------- switched off ---------- */
+/* Switched off from the toolbar popup: nothing the status pill says applies. */
+
+.enh-root[data-disabled] .enh-panel { display: none; }

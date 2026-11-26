@@ -42,7 +42,9 @@ document.getElementById("form").addEventListener("submit", async (event) => {
   for (const [key, fallback] of Object.entries(sectionDefaults)) {
     if (values[key] === fallback) values[key] = "";
   }
-  await chrome.storage.local.set(values);
+  // Only the form's own fields. normalise() fills in every setting, and writing
+  // its default `enabled` back would switch the assistant on behind the popup.
+  await chrome.storage.local.set(Object.fromEntries(FIELDS.map((k) => [k, values[k]])));
   // The single free-form prompt this replaced; nothing reads it any more.
   await chrome.storage.local.remove("prompt");
 

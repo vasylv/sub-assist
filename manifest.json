@@ -15,6 +15,10 @@
     "type": "module"
   },
   "options_page": "src/options.html",
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_title": "YouTube Language Assistant"
+  },
   "content_scripts": [
     {
       "matches": [

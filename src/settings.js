@@ -72,6 +72,7 @@ const EnHintSettings = (() => {
   };
 
   const DEFAULTS = {
+    enabled: true, // switched in the toolbar popup; off, a pause explains nothing
     apiKey: "",
     model: "gpt-4.1-mini",
     divideRules: DEFAULT_DIVIDE_RULES,
@@ -127,6 +128,9 @@ const EnHintSettings = (() => {
       contextSeconds: clamp(s.contextSeconds, DEFAULTS.contextSeconds, LIMITS.contextSeconds),
       fontFamily: cleanFont(s.fontFamily),
       fontSize: clamp(s.fontSize, DEFAULTS.fontSize, LIMITS.fontSize),
+      // Only an explicit false turns it off: a missing or garbled value must not
+      // silently switch the assistant off.
+      enabled: s.enabled !== false,
     };
   }
 

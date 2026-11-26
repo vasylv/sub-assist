@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>YouTube Language Assistant</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; padding: 16px 16px 14px; width: 260px;
+    font: 14px/1.45 system-ui, -apple-system, sans-serif;
+  }
+  h1 { font-size: 15px; margin: 0 0 2px; }
+  #state { margin: 0 0 14px; color: #8a8a8f; font-size: 13px; }
+  #state .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+                margin-right: 6px; vertical-align: 1px; background: #8a8a8f; }
+  #state[data-on="true"] .dot { background: #2e9e5b; }
+  button {
+    display: block; width: 100%; box-sizing: border-box; padding: 9px 12px;
+    font: inherit; font-weight: 600; border-radius: 8px; cursor: pointer;
+    border: 1px solid rgba(128,128,128,.4); background: transparent; color: inherit;
+  }
+  button.primary { background: #ffd166; border-color: #ffd166; color: #1a1a1a; }
+  #toggle:disabled { opacity: .6; cursor: default; }
+  .warn { margin: 12px 0 0; font-size: 12.5px; color: #c98a00; }
+  .warn[hidden] { display: none; }
+  a { display: inline-block; margin-top: 12px; font-size: 13px; color: inherit; opacity: .75; }
+  a:hover { opacity: 1; }
+</style>
+</head>
+<body>
+  <h1>YouTube Language Assistant</h1>
+  <p id="state"><span class="dot"></span><span id="stateText"></span></p>
+  <button type="button" id="toggle" disabled></button>
+  <p class="warn" id="noKey" hidden>No OpenAI API key yet: pauses cannot be explained until you add one in Settings.</p>
+  <a href="#" id="settings">Settings</a>
+
+  <script src="settings.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

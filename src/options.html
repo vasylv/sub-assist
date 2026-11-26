@@ -17,23 +17,35 @@
   label { display: block; margin-bottom: 16px; }
   .label-text { display: block; font-weight: 600; margin-bottom: 4px; }
   .help { display: block; color: #8a8a8f; font-size: 13px; margin-top: 4px; }
-  input[type="text"], input[type="password"], input[type="number"], select {
+  input[type="text"], input[type="password"], input[type="number"], select, textarea {
     width: 100%; box-sizing: border-box; padding: 8px 10px; font: inherit;
     border: 1px solid rgba(128,128,128,.4); border-radius: 7px; background: transparent; color: inherit;
   }
+  input[type="number"] { max-width: 140px; }
+  textarea { font: 13px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+             resize: vertical; min-height: 160px; white-space: pre-wrap; }
+  code { font: 12.5px ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+         background: rgba(128,128,128,.16); border-radius: 4px; padding: 1px 4px; }
+  .row { display: flex; gap: 18px; flex-wrap: wrap; }
+  .row > label { flex: 1 1 220px; }
   button { font: inherit; padding: 9px 18px; border-radius: 7px; border: 1px solid rgba(128,128,128,.4);
            background: transparent; color: inherit; cursor: pointer; }
   button.primary { background: #ffd166; border-color: #ffd166; color: #1a1a1a; font-weight: 700; }
   .actions { display: flex; align-items: center; gap: 12px; }
   #saved { color: #2e9e5b; font-size: 14px; opacity: 0; transition: opacity .15s; }
   #saved.show { opacity: 1; }
+  .preview { margin: -4px 0 16px; padding: 12px 14px; border-radius: 10px;
+             background: rgba(16,16,18,.94); color: #f2f2f4;
+             font-family: "YouTube Sans", Roboto, system-ui, sans-serif; font-size: 13px; }
+  .preview-term { display: block; font-weight: 700; font-size: 1.077em; }
+  .preview-meaning { display: block; color: rgba(242,242,244,.72); line-height: 1.5; }
   .warn { border-left: 3px solid #e0a800; padding: 10px 14px; background: rgba(224,168,0,.08);
           border-radius: 0 7px 7px 0; font-size: 13.5px; margin-bottom: 24px; }
 </style>
 </head>
 <body>
   <h1>EN Hint</h1>
-  <p class="sub">Pause a YouTube video, and the last three lines are explained.</p>
+  <p class="sub">Pause a YouTube video, and the lines you just heard are explained.</p>
 
   <p class="warn">
     The key is stored in this browser profile only, and is used solely to call OpenAI from the
@@ -51,22 +63,85 @@
       <label>
         <span class="label-text">Model</span>
         <input type="text" id="model" spellcheck="false">
-        <span class="help">Any chat model that supports structured JSON output.</span>
+        <span class="help">Any OpenAI chat model.</span>
       </label>
     </fieldset>
 
     <fieldset>
-      <legend>What counts as worth explaining</legend>
+      <legend>How much is sent</legend>
+      <div class="row">
+        <label>
+          <span class="label-text">Lines explained</span>
+          <input type="number" id="targetLines" min="1" max="12" step="1">
+          <span class="help">The line playing when you pause, plus the ones before it. These are the lines the model is asked about.</span>
+        </label>
+        <label>
+          <span class="label-text">Context before (seconds)</span>
+          <input type="number" id="contextSeconds" min="0" max="60" step="1">
+          <span class="help">Extra dialogue from the seconds leading up to those lines, sent so an idiom is read in context. The model is told not to explain anything that appears only here. 0 sends none.</span>
+        </label>
+      </div>
+      <p class="help" style="margin-top:-6px">Every one of these lines goes to the model on every pause, so larger numbers cost more and answer slower.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Card</legend>
+      <div class="row">
+        <label>
+          <span class="label-text">Font</span>
+          <input type="text" id="fontFamily" list="fontSuggestions" spellcheck="false" placeholder="YouTube's font">
+          <datalist id="fontSuggestions">
+            <option value="system-ui, sans-serif">
+            <option value="Arial, Helvetica, sans-serif">
+            <option value="Verdana, sans-serif">
+            <option value="Georgia, serif">
+            <option value="&quot;Times New Roman&quot;, serif">
+            <option value="&quot;Comic Sans MS&quot;, cursive">
+            <option value="OpenDyslexic, sans-serif">
+            <option value="ui-monospace, Menlo, Consolas, monospace">
+          </datalist>
+          <span class="help">Any CSS font list; the font must be installed on this computer. Leave empty for YouTube's own font.</span>
+        </label>
+        <label>
+          <span class="label-text">Text size (px)</span>
+          <input type="number" id="fontSize" min="10" max="28" step="1">
+          <span class="help">The whole card scales with it, width included.</span>
+        </label>
+      </div>
+      <div id="fontPreview" class="preview">
+        <span class="preview-term">gave up</span>
+        <span class="preview-meaning">stopped trying to do something.</span>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Prompt</legend>
+      <p class="help" style="margin-top:0">
+        Three sections of the prompt are yours to edit. The rest — the task, the
+        <code>CONTEXT</code> / <code>TARGET</code> input and the output format — is fixed, because the
+        card reads that format to lay out each part and its explanation. When a video's subtitles are
+        machine-generated, a short note about mis-transcriptions is added too; that changes per video,
+        so it is not a setting.
+      </p>
       <label>
-        <span class="label-text">Your level</span>
-        <select id="level">
-          <option value="A2">A2 — elementary</option>
-          <option value="B1">B1 — intermediate</option>
-          <option value="B2">B2 — upper intermediate</option>
-          <option value="C1">C1 — advanced</option>
-        </select>
-        <span class="help">Explanations are cached per video and level, so changing this asks again.</span>
+        <span class="label-text">How to divide the text</span>
+        <textarea id="divideRules" spellcheck="false" rows="10"></textarea>
+        <span class="help">How each caption line is split into parts: idioms, phrasal verbs, phrases or single words.</span>
       </label>
+      <button type="button" class="reset" data-field="divideRules" data-default="DEFAULT_DIVIDE_RULES">Reset this section</button>
+      <label style="margin-top:20px">
+        <span class="label-text">Grouping examples</span>
+        <textarea id="groupingExamples" spellcheck="false" rows="7"></textarea>
+        <span class="help">Worked examples of the rules above: which words belong together as one part. Examples steer the model more than rules do, so a few well-chosen ones go a long way.</span>
+      </label>
+      <button type="button" class="reset" data-field="groupingExamples" data-default="DEFAULT_GROUPING_EXAMPLES">Reset this section</button>
+      <label style="margin-top:20px">
+        <span class="label-text">How to explain</span>
+        <textarea id="explainRules" spellcheck="false" rows="12"></textarea>
+        <span class="help">How each part is explained: the level of English, grammar, slang, fillers and what to do when unsure.</span>
+      </label>
+      <button type="button" class="reset" data-field="explainRules" data-default="DEFAULT_EXPLAIN_RULES">Reset this section</button>
+      <div style="height:14px"></div>
     </fieldset>
 
     <div class="actions">
@@ -76,6 +151,7 @@
     </div>
   </form>
 
+  <script src="settings.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

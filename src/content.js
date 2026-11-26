@@ -34,11 +34,31 @@ const SILENCE_S = 10; // paused this long after the last line means nothing to e
 let targetLines = EnHintSettings.DEFAULTS.targetLines;
 let contextSeconds = EnHintSettings.DEFAULTS.contextSeconds;
 
+// How the card is drawn. Kept here as well as on the card, because the card is
+// rebuilt whenever YouTube replaces the player, and the new one needs them too.
+let fontFamily = EnHintSettings.DEFAULTS.fontFamily;
+let fontSize = EnHintSettings.DEFAULTS.fontSize;
+
+const UI_KEYS = ["targetLines", "contextSeconds", "fontFamily", "fontSize"];
+
 function applySettings(s) {
-  if (s.targetLines === targetLines && s.contextSeconds === contextSeconds) return;
+  const current = { targetLines, contextSeconds, fontFamily, fontSize };
+  if (UI_KEYS.every((k) => s[k] === current[k])) return;
   targetLines = s.targetLines;
   contextSeconds = s.contextSeconds;
-  trace("settings changed", { targetLines, contextSeconds });
+  fontFamily = s.fontFamily;
+  fontSize = s.fontSize;
+  if (root) applyFont(root);
+  trace("settings changed", { targetLines, contextSeconds, fontFamily: fontFamily || "(YouTube)", fontSize });
+}
+
+// An empty family removes the property, which falls back to YouTube's font in
+// overlay.css. A family the browser cannot parse is dropped by setProperty, with
+// the same result.
+function applyFont(el) {
+  if (fontFamily) el.style.setProperty("--enh-font", fontFamily);
+  else el.style.removeProperty("--enh-font");
+  el.style.setProperty("--enh-font-size", `${fontSize}px`);
 }
 
 EnHintSettings.read().then(applySettings);
@@ -46,7 +66,7 @@ EnHintSettings.read().then(applySettings);
 // Saving the options page must not need a reload of every open YouTube tab.
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
-  if (!("targetLines" in changes) && !("contextSeconds" in changes)) return;
+  if (!UI_KEYS.some((k) => k in changes)) return;
   EnHintSettings.read().then(applySettings);
 });
 
@@ -291,9 +311,10 @@ async function explainAt(time) {
     return;
   }
   trace(result.cached ? "  explained (from cache)" : "  explained", {
-    items: result.items.map((i) => i.term),
+    parts: result.parts ? result.parts.map((p) => p.part) : [],
+    unparsed: result.raw !== undefined ? result.raw : null,
   });
-  showItems(result.items, result.cached);
+  showExplanation(result);
 }
 
 // --- the card ---------------------------------------------------------------
@@ -325,6 +346,7 @@ function ensureRoot() {
     <div class="enh-panel" hidden>
       <span class="enh-status"></span>
     </div>`;
+  applyFont(root);
   player.appendChild(root);
   root.querySelector(".enh-close").addEventListener("click", dismiss);
   return root;
@@ -377,40 +399,49 @@ function showCard(lines) {
   el.querySelector(".enh-card").hidden = false;
 }
 
-function showItems(list, cached) {
+// One row per part, in the order the words were spoken: the exact words, then
+// what they mean here.
+function showExplanation(result) {
   const el = ensureRoot();
   if (!el) return;
   const items = el.querySelector(".enh-items");
   items.className = "enh-items";
   items.textContent = "";
 
-  if (!list.length) {
-    const empty = document.createElement("p");
-    empty.className = "enh-empty";
-    empty.textContent = "Nothing unusual in these lines.";
-    items.appendChild(empty);
+  // The reply did not follow the format: show it as it came rather than lose it.
+  if (!result.parts) {
+    const p = document.createElement("p");
+    p.className = "enh-raw";
+    p.textContent = result.raw || "No explanation came back.";
+    items.appendChild(p);
     return;
   }
 
-  for (const item of list) {
+  for (const note of result.notes) {
+    const p = document.createElement("p");
+    p.className = "enh-note";
+    p.textContent = note;
+    items.appendChild(p);
+  }
+
+  for (const part of result.parts) {
     const row = document.createElement("div");
     row.className = "enh-item";
-
     const term = document.createElement("span");
     term.className = "enh-term";
-    term.textContent = item.term;
-    const kind = document.createElement("small");
-    kind.textContent = item.kind.replace(/_/g, " ");
-    term.appendChild(kind);
-
+    term.textContent = part.part;
+    if (part.where) {
+      const where = document.createElement("small");
+      where.textContent = part.where;
+      term.appendChild(where);
+    }
     const meaning = document.createElement("span");
     meaning.className = "enh-meaning";
-    meaning.textContent = item.meaning;
-
+    meaning.textContent = part.explanation;
     row.append(term, meaning);
     items.appendChild(row);
   }
-  if (cached) console.info("[en-hint] served from cache");
+  if (result.cached) console.info("[en-hint] served from cache");
 }
 
 function showError(message) {

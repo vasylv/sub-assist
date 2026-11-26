@@ -1,24 +1,44 @@
 {
   "manifest_version": 3,
-  "name": "EN Hint",
-  "version": "0.2.0",
-  "description": "Reads YouTube subtitles up front, finds expressions above your level, and explains them as they come up.",
-  "host_permissions": ["https://www.youtube.com/*", "https://api.openai.com/*"],
-  "permissions": ["storage"],
-  "background": { "service_worker": "src/background.js", "type": "module" },
+  "name": "YouTube Language Assistant",
+  "version": "0.1.0",
+  "description": "Reads YouTube subtitles, finds expressions and explains them if a video is paused.",
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://api.openai.com/*"
+  ],
+  "permissions": [
+    "storage"
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
   "options_page": "src/options.html",
   "content_scripts": [
     {
-      "matches": ["https://www.youtube.com/*"],
-      "js": ["src/main-world.js"],
+      "matches": [
+        "https://www.youtube.com/*"
+      ],
+      "js": [
+        "src/main-world.js"
+      ],
       "run_at": "document_start",
       "world": "MAIN",
       "all_frames": false
     },
     {
-      "matches": ["https://www.youtube.com/*"],
-      "js": ["src/scheduler.js", "src/content.js"],
-      "css": ["src/overlay.css"],
+      "matches": [
+        "https://www.youtube.com/*"
+      ],
+      "js": [
+        "src/settings.js",
+        "src/scheduler.js",
+        "src/content.js"
+      ],
+      "css": [
+        "src/overlay.css"
+      ],
       "run_at": "document_start",
       "world": "ISOLATED",
       "all_frames": false

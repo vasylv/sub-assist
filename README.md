@@ -1,4 +1,4 @@
-# EN Hint
+# YouTube Language Assistant
 
 A Chrome extension that explains the English you just heard. Pause a YouTube video and
 the last three lines are explained on the spot — the idioms, the words worth knowing, the

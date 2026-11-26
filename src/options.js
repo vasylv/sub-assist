@@ -1,36 +1,74 @@
-const DEFAULTS = {
-  apiKey: "",
-  model: "gpt-4.1-mini",
-  level: "B1",
-};
+// The options page. Defaults, bounds and validation all live in
+// src/settings.js, loaded ahead of this file — this only moves values between
+// storage and the form.
 
-const fields = Object.keys(DEFAULTS);
+const FIELDS = ["apiKey", "model", "divideRules", "groupingExamples", "explainRules", "targetLines", "contextSeconds", "fontFamily", "fontSize"];
 const el = (id) => document.getElementById(id);
 
 async function load() {
-  const stored = await chrome.storage.local.get(fields);
-  const values = { ...DEFAULTS, ...stored };
-  for (const key of fields) {
-    const node = el(key);
-    if (node.type === "checkbox") node.checked = Boolean(values[key]);
-    else node.value = values[key];
-  }
+  const values = await EnHintSettings.read();
+  for (const key of FIELDS) el(key).value = values[key];
+  preview();
 }
+
+// Shows the font as it is typed, before Save. Goes through normalise() so the
+// preview is what will actually be stored and drawn, clamping included.
+function preview() {
+  const { fontFamily, fontSize } = EnHintSettings.normalise({
+    fontFamily: el("fontFamily").value,
+    fontSize: el("fontSize").value,
+  });
+  const box = el("fontPreview");
+  box.style.fontFamily = fontFamily; // empty falls back to the stylesheet's YouTube font
+  box.style.fontSize = `${fontSize}px`;
+}
+el("fontFamily").addEventListener("input", preview);
+el("fontSize").addEventListener("input", preview);
 
 document.getElementById("form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  await chrome.storage.local.set({
-    apiKey: el("apiKey").value.trim(),
-    model: el("model").value.trim() || DEFAULTS.model,
-    level: el("level").value,
-  });
+
+  // Normalise before storing, not after reading: a number typed out of range,
+  // or a prompt emptied by accident, is corrected once here rather than by
+  // every reader forever.
+  const values = EnHintSettings.normalise(Object.fromEntries(FIELDS.map((k) => [k, el(k).value])));
+  // A prompt section left at its default is stored empty, so the next version's
+  // better default reaches this viewer too instead of being pinned at today's.
+  const sectionDefaults = {
+    divideRules: EnHintSettings.DEFAULT_DIVIDE_RULES,
+    groupingExamples: EnHintSettings.DEFAULT_GROUPING_EXAMPLES,
+    explainRules: EnHintSettings.DEFAULT_EXPLAIN_RULES,
+  };
+  for (const [key, fallback] of Object.entries(sectionDefaults)) {
+    if (values[key] === fallback) values[key] = "";
+  }
+  await chrome.storage.local.set(values);
+  // The single free-form prompt this replaced; nothing reads it any more.
+  await chrome.storage.local.remove("prompt");
+
+  // Show what was actually stored, so a clamped number does not silently
+  // disagree with the box it was typed into.
+  await load();
+
   const saved = el("saved");
   saved.classList.add("show");
   setTimeout(() => saved.classList.remove("show"), 1200);
 });
 
-// Explanations are cached per video, cue, level and model, so they pile up. This
-// is the escape hatch for "that explanation looks wrong, ask again".
+// Puts a section's default back in its box without saving it — the viewer
+// still has to press Save, so this is undoable by navigating away.
+for (const button of document.querySelectorAll("button.reset")) {
+  button.addEventListener("click", () => {
+    const box = el(button.dataset.field);
+    box.value = EnHintSettings[button.dataset.default];
+    box.focus();
+  });
+}
+
+// Explanations are cached per video, cue, prompt and model, so they pile up.
+// This is the escape hatch for "that explanation looks wrong, ask again" —
+// and editing the prompt already asks again on its own, because the prompt is
+// part of the key.
 //
 // `scan:` and `transcript:` are swept too: they are left over from the version
 // that analysed the whole transcript up front, and nothing reads them now.

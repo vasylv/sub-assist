@@ -114,3 +114,19 @@ test("the assistant is on unless explicitly switched off", () => {
     assert.equal(S.normalise({ enabled: garbled }).enabled, true, String(garbled));
   }
 });
+
+test("an unknown provider falls back to OpenAI; Gemini is kept", () => {
+  assert.equal(S.normalise({ provider: "claude" }).provider, "openai");
+  assert.equal(S.normalise({ provider: "toString" }).provider, "openai");
+  assert.equal(S.normalise({ provider: "gemini" }).provider, "gemini");
+});
+
+test("active() picks the chosen provider's own key, model and endpoint", () => {
+  const both = { apiKey: " sk-o ", model: "gpt-x", geminiApiKey: " AIza-g ", geminiModel: "" };
+  const o = S.active(S.normalise({ ...both, provider: "openai" }));
+  assert.deepEqual([o.label, o.apiKey, o.model], ["OpenAI", "sk-o", "gpt-x"]);
+  assert.match(o.url, /api\.openai\.com/);
+  const g = S.active(S.normalise({ ...both, provider: "gemini" }));
+  assert.deepEqual([g.label, g.apiKey, g.model], ["Gemini", "AIza-g", S.DEFAULTS.geminiModel]);
+  assert.match(g.url, /generativelanguage\.googleapis\.com\/v1beta\/openai\/chat\/completions$/);
+});

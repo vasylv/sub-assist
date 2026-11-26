@@ -71,10 +71,32 @@ const EnHintSettings = (() => {
     return !text || RETIRED_DEFAULTS.has(hash(text)) ? fallback : text;
   };
 
+  // Both speak the OpenAI chat-completions format — Gemini through Google's
+  // OpenAI-compatible endpoint — so one request shape serves either; only the
+  // URL, the key and the model differ. Each keeps its own key and model, so
+  // switching back and forth does not wipe the other one.
+  const PROVIDERS = {
+    openai: {
+      label: "OpenAI",
+      url: "https://api.openai.com/v1/chat/completions",
+      keyField: "apiKey",
+      modelField: "model",
+    },
+    gemini: {
+      label: "Gemini",
+      url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+      keyField: "geminiApiKey",
+      modelField: "geminiModel",
+    },
+  };
+
   const DEFAULTS = {
     enabled: true, // switched in the toolbar popup; off, a pause explains nothing
-    apiKey: "",
+    provider: "openai",
+    apiKey: "", // OpenAI's; the name predates Gemini and is kept so stored keys still work
     model: "gpt-4.1-mini",
+    geminiApiKey: "",
+    geminiModel: "gemini-3.5-flash-lite",
     divideRules: DEFAULT_DIVIDE_RULES,
     groupingExamples: DEFAULT_GROUPING_EXAMPLES,
     explainRules: DEFAULT_EXPLAIN_RULES,
@@ -119,8 +141,11 @@ const EnHintSettings = (() => {
   function normalise(stored) {
     const s = { ...DEFAULTS, ...stored };
     return {
+      provider: Object.hasOwn(PROVIDERS, s.provider) ? s.provider : DEFAULTS.provider,
       apiKey: String(s.apiKey || "").trim(),
       model: String(s.model || "").trim() || DEFAULTS.model,
+      geminiApiKey: String(s.geminiApiKey || "").trim(),
+      geminiModel: String(s.geminiModel || "").trim() || DEFAULTS.geminiModel,
       divideRules: rules(s.divideRules, DEFAULT_DIVIDE_RULES),
       groupingExamples: rules(s.groupingExamples, DEFAULT_GROUPING_EXAMPLES),
       explainRules: rules(s.explainRules, DEFAULT_EXPLAIN_RULES),
@@ -134,6 +159,12 @@ const EnHintSettings = (() => {
     };
   }
 
+  // The provider in use, with its endpoint, key and model, from normalised settings.
+  function active(settings) {
+    const p = PROVIDERS[settings.provider] || PROVIDERS[DEFAULTS.provider];
+    return { label: p.label, url: p.url, apiKey: settings[p.keyField], model: settings[p.modelField] };
+  }
+
   async function read() {
     return normalise(await chrome.storage.local.get(Object.keys(DEFAULTS)));
   }
@@ -144,6 +175,8 @@ const EnHintSettings = (() => {
     DEFAULT_GROUPING_EXAMPLES,
     DEFAULT_EXPLAIN_RULES,
     LIMITS,
+    PROVIDERS,
+    active,
     normalise,
     read,
   };

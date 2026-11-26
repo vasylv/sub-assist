@@ -48,23 +48,45 @@
   <p class="sub">Pause a YouTube video, and the lines you just heard are explained.</p>
 
   <p class="warn">
-    The key is stored in this browser profile only, and is used solely to call OpenAI from the
-    extension's service worker. Anyone with access to this Chrome profile can read it — use a key
-    with a spending limit.
+    Keys are stored in this browser profile only, and are used solely to call the chosen provider
+    from the extension's service worker. Anyone with access to this Chrome profile can read them —
+    use keys with a spending limit.
   </p>
 
   <form id="form">
     <fieldset>
-      <legend>OpenAI</legend>
+      <legend>Model provider</legend>
       <label>
-        <span class="label-text">API key</span>
-        <input type="password" id="apiKey" autocomplete="off" spellcheck="false" placeholder="sk-…">
+        <span class="label-text">Provider</span>
+        <select id="provider">
+          <option value="openai">OpenAI</option>
+          <option value="gemini">Google Gemini</option>
+        </select>
+        <span class="help">Only the chosen provider is called. Each keeps its own key and model, so switching back does not lose the other.</span>
       </label>
-      <label>
-        <span class="label-text">Model</span>
-        <input type="text" id="model" spellcheck="false">
-        <span class="help">Any OpenAI chat model.</span>
-      </label>
+      <div data-provider="openai">
+        <label>
+          <span class="label-text">OpenAI API key</span>
+          <input type="password" id="apiKey" autocomplete="off" spellcheck="false" placeholder="sk-…">
+        </label>
+        <label>
+          <span class="label-text">OpenAI model</span>
+          <input type="text" id="model" spellcheck="false">
+          <span class="help">Any OpenAI chat model.</span>
+        </label>
+      </div>
+      <div data-provider="gemini">
+        <label>
+          <span class="label-text">Gemini API key</span>
+          <input type="password" id="geminiApiKey" autocomplete="off" spellcheck="false" placeholder="AIza…">
+          <span class="help">A key from Google AI Studio (aistudio.google.com/apikey).</span>
+        </label>
+        <label>
+          <span class="label-text">Gemini model</span>
+          <input type="text" id="geminiModel" spellcheck="false">
+          <span class="help">Any Gemini text model ID, e.g. <code>gemini-3.5-flash-lite</code> or <code>gemini-3.8-flash</code>.</span>
+        </label>
+      </div>
     </fieldset>
 
     <fieldset>

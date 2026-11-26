@@ -35,7 +35,8 @@ Nothing is sent anywhere while you simply watch. Pressing pause **is** the reque
    the two before it as the **target**, and whatever else started in the previous ten
    seconds as **context**, then draws the card.
 
-4. **`src/background.js`** (the service worker) asks OpenAI to explain the target lines,
+4. **`src/background.js`** (the service worker) asks the chosen model provider — OpenAI or
+   Google Gemini, through Gemini's OpenAI-compatible endpoint — to explain the target lines,
    with your CEFR level in the prompt and a strict JSON schema on the response. Answers
    are cached in `chrome.storage.local` per `(videoId, cueIndex, level, model)`. The API
    key lives only here — never in a script that shares a page with YouTube.
@@ -59,7 +60,8 @@ Nothing is sent anywhere while you simply watch. Pressing pause **is** the reque
 ## Install
 
 1. `chrome://extensions` → enable **Developer mode** → **Load unpacked** → pick this folder.
-2. Open the extension's **options** and paste an OpenAI API key, then pick your level.
+2. Open the extension's **options**, pick a provider (OpenAI or Gemini) and paste its API key
+   — a Gemini key comes from Google AI Studio.
 3. Open any YouTube video with subtitles.
 
 The panel at the bottom-left of the player reports what happened; the console has the
@@ -116,7 +118,7 @@ Each attempt logs why it gave out, so a video with no hints says which step fail
 
 ## Cost
 
-One small OpenAI request per pause — around ten seconds of dialogue, some 35 words —
+One small model request per pause — around ten seconds of dialogue, some 35 words —
 and nothing at all for a video you never pause. Each answer is cached per cue, so
 pausing in the same place again is free.
 
@@ -135,5 +137,5 @@ finger on the pause key is a better signal than any amount of inference.
 
 An API key inside an unpacked extension is readable by anyone with access to this
 Chrome profile — there is no way around that. For personal use with a spending-limited
-key that is fine. If this is ever shared with other people, the OpenAI call has to move
+key that is fine. If this is ever shared with other people, the model call has to move
 behind a backend you control.

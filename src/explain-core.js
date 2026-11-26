@@ -87,8 +87,9 @@ export const cacheKeyFor = (videoId, index, prompt, model) =>
 
 // --- reading the reply --------------------------------------------------------
 // The model is asked for a flat list of "- “part” → explanation" rows, and
-// mostly keeps to it, but it is free text: bold markers, straight quotes or
-// "->" for the arrow all turn up. A line that is not a row continues the row
+// mostly keeps to it, but it is free text: bold markers, straight quotes,
+// "->" for the arrow, a missing bullet or the placeholder's [brackets] all
+// turn up. A line that is not a row continues the row
 // above it; text before the first row is kept as a note. So nothing the model
 // said is dropped. If there is no row at all, the reply is returned whole as
 // `raw` and the card shows it as it came.
@@ -100,7 +101,16 @@ const unquote = (s) =>
     .trim();
 const unbold = (s) => s.replace(/\*\*/g, "").replace(/^#+\s*/, "");
 
-const PART_RE = /^[-*•]\s*(.+?)\s*(?:→|->|=>)\s*(.+)$/;
+// The format's placeholders are “[exact part]” and [explanation], and a model
+// sometimes copies the brackets along with the words. Only a value wrapped
+// whole in one pair is unwrapped, so "[sic]" inside an explanation survives.
+const unbracket = (s) => s.replace(/^\[([^[\]]*)\]$/, "$1").trim();
+
+// A row is "- “part” → explanation". The bullet is sometimes dropped (or
+// becomes "1."), so a row without one is accepted too — but only when its left
+// side is quoted, so ordinary prose that happens to hold an arrow stays prose.
+const BULLETED_RE = /^(?:[-*•]|\d+[.)])\s*(.+?)\s*(?:→|->|=>)\s*(.+)$/;
+const BARE_RE = /^(["“].+?["”](?:\s*(?:\([^)]*\)|\[[^\]]*\]))?)\s*(?:→|->|=>)\s*(.+)$/;
 const GROUPED_RE = /^["“](.+)["”]\s*(\(.*\)|\[.*\])$/;
 
 export function parseExplanation(text) {
@@ -112,15 +122,16 @@ export function parseExplanation(text) {
     const row = unbold(rawLine).trim();
     if (!row) continue;
 
-    const m = row.match(PART_RE);
+    const m = row.match(BULLETED_RE) || row.match(BARE_RE);
     if (m) {
       // A phrase grouped across caption lines comes with a note on which ones:
       // “if you could / give me a hand” (lines 2–3). The note is kept apart so
       // the quoted words stay exactly the words that were said.
       const g = m[1].match(GROUPED_RE);
+      const explanation = unbracket(m[2].trim());
       part = g
-        ? { part: g[1].trim(), where: g[2].replace(/^[([]|[)\]]$/g, "").trim(), explanation: m[2].trim() }
-        : { part: unquote(m[1]), explanation: m[2].trim() };
+        ? { part: unbracket(g[1].trim()), where: g[2].replace(/^[([]|[)\]]$/g, "").trim(), explanation }
+        : { part: unbracket(unquote(m[1])), explanation };
       parts.push(part);
     } else if (part) {
       part.explanation += " " + row.replace(/^[-*•]\s*/, "");

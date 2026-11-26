@@ -142,3 +142,31 @@ test("a reply that ignores the format comes back whole as raw", () => {
   assert.deepEqual(core.parseExplanation(""), { raw: "" });
   assert.deepEqual(core.parseExplanation(undefined), { raw: "" });
 });
+
+test("rows without a bullet, with the placeholder's brackets copied, still parse", () => {
+  const r = core.parseExplanation(`“[looking at agents and our content in a]” → examining or considering both support agents and our content materials as part of a
+
+“[life]” → this is likely a machine-generated mishearing (transcription error)`);
+  assert.deepEqual(r.notes, []);
+  assert.deepEqual(
+    r.parts.map((p) => p.part),
+    ["looking at agents and our content in a", "life"],
+  );
+  assert.equal(r.parts[1].explanation, "this is likely a machine-generated mishearing (transcription error)");
+});
+
+test("bracketed explanations, numbered rows and bracketed grouped parts are unwrapped", () => {
+  const r = core.parseExplanation(`1. “[and then]” → [after that.]
+“[if you could / give me a hand]” (lines 2–3) → if you could help me [sic].`);
+  assert.deepEqual(r.parts[0], { part: "and then", explanation: "after that." });
+  assert.deepEqual(r.parts[1], {
+    part: "if you could / give me a hand",
+    where: "lines 2–3",
+    explanation: "if you could help me [sic].",
+  });
+});
+
+test("unquoted prose with an arrow is not mistaken for a row", () => {
+  const r = core.parseExplanation("The speaker moves from A -> B here.");
+  assert.deepEqual(r, { raw: "The speaker moves from A -> B here." });
+});

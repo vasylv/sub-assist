@@ -19,7 +19,9 @@ function render(settings) {
   toggle.className = enabled ? "" : "primary";
   toggle.disabled = false;
 
-  el("noKey").hidden = Boolean(settings.apiKey);
+  const provider = EnHintSettings.active(settings);
+  el("noKey").hidden = Boolean(provider.apiKey);
+  el("noKeyProvider").textContent = provider.label;
 }
 
 el("toggle").addEventListener("click", async () => {

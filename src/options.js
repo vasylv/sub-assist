@@ -2,14 +2,22 @@
 // src/settings.js, loaded ahead of this file — this only moves values between
 // storage and the form.
 
-const FIELDS = ["apiKey", "model", "divideRules", "groupingExamples", "explainRules", "targetLines", "contextSeconds", "fontFamily", "fontSize"];
+const FIELDS = ["provider", "apiKey", "model", "geminiApiKey", "geminiModel", "divideRules", "groupingExamples", "explainRules", "targetLines", "contextSeconds", "fontFamily", "fontSize"];
 const el = (id) => document.getElementById(id);
 
 async function load() {
   const values = await EnHintSettings.read();
   for (const key of FIELDS) el(key).value = values[key];
+  showProvider();
   preview();
 }
+
+// Only the chosen provider's key and model are shown; the other's stay stored.
+function showProvider() {
+  const chosen = el("provider").value;
+  for (const box of document.querySelectorAll("[data-provider]")) box.hidden = box.dataset.provider !== chosen;
+}
+el("provider").addEventListener("change", showProvider);
 
 // Shows the font as it is typed, before Save. Goes through normalise() so the
 // preview is what will actually be stored and drawn, clamping included.

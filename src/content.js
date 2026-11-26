@@ -7,11 +7,11 @@
 // Uses EnHintPlayback (src/scheduler.js, loaded ahead of this file in the same
 // manifest entry) to hear about pauses.
 
-const CHANNEL = "en-hint";
+const CHANNEL = "sub-assist";
 
 // ---- tracing ---------------------------------------------------------------
 // Both halves of the extension write to this console, so each line says which
-// world it came from. src/main-world.js logs "en-hint page"; this is the half
+// world it came from. src/main-world.js logs "sub-assist page"; this is the half
 // that owns the cues and the card.
 const T0 = Date.now();
 const since = () => `+${((Date.now() - T0) / 1000).toFixed(2)}s`;
@@ -19,7 +19,7 @@ const TRACE_CSS =
   "background:#6fcb98;color:#10241a;font-weight:700;padding:1px 5px;border-radius:3px";
 
 function trace(step, detail) {
-  const head = `%cen-hint ui%c ${since()}  ${step}`;
+  const head = `%csub-assist ui%c ${since()}  ${step}`;
   if (detail === undefined) console.log(head, TRACE_CSS, "");
   else console.log(head, TRACE_CSS, "", detail);
 }
@@ -139,7 +139,7 @@ window.addEventListener("message", (event) => {
     // the lines to read first when a video comes back with no subtitles.
     case "attempt-failed":
       console.warn(
-        `[en-hint] transcript attempt "${msg.payload.label}" failed: ${msg.payload.message}`
+        `[sub-assist] transcript attempt "${msg.payload.label}" failed: ${msg.payload.message}`
       );
       break;
     // "timedtext-seen" and "track-found" are still posted, but the page world
@@ -318,7 +318,7 @@ async function explainAt(time) {
     });
   } catch (err) {
     if (token === requestToken) showError("could not reach the extension");
-    console.error("[en-hint] explain message failed:", err);
+    console.error("[sub-assist] explain message failed:", err);
     return;
   }
 
@@ -461,7 +461,7 @@ function showExplanation(result) {
     row.append(term, meaning);
     items.appendChild(row);
   }
-  if (result.cached) console.info("[en-hint] served from cache");
+  if (result.cached) console.info("[sub-assist] served from cache");
 }
 
 function showError(message) {

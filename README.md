@@ -1,4 +1,4 @@
-# YouTube Language Assistant
+# Sub Assist
 
 A Chrome extension that explains the English you just heard. Pause a YouTube video and
 the last three lines are explained on the spot — the idioms, the words worth knowing, the
@@ -63,7 +63,7 @@ Nothing is sent anywhere while you simply watch. Pressing pause **is** the reque
 3. Open any YouTube video with subtitles.
 
 The panel at the bottom-left of the player reports what happened; the console has the
-detail (`[en-hint]`).
+detail (`[sub-assist]`).
 
 ## Verifying it
 

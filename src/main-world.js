@@ -16,7 +16,7 @@
 // avoiding it is the whole point of this file.
 
 (() => {
-  const CHANNEL = "en-hint";
+  const CHANNEL = "sub-assist";
   const post = (type, payload) =>
     window.postMessage({ source: CHANNEL, type, payload }, window.location.origin);
 
@@ -31,7 +31,7 @@
     "background:#ffd166;color:#1a1a1a;font-weight:700;padding:1px 5px;border-radius:3px";
 
   function trace(step, detail) {
-    const head = `%cen-hint page%c ${since()}  ${step}`;
+    const head = `%csub-assist page%c ${since()}  ${step}`;
     if (detail === undefined) console.log(head, TRACE_CSS, "");
     else console.log(head, TRACE_CSS, "", detail);
   }
@@ -282,7 +282,7 @@
   // The player only downloads a caption track when subtitles are actually on.
   // If they are off we switch them on, hide the rendered subtitles so the
   // viewer sees no flicker, and put everything back afterwards.
-  const HIDE_ID = "en-hint-hide-captions";
+  const HIDE_ID = "sub-assist-hide-captions";
 
   function hideRenderedCaptions() {
     if (document.getElementById(HIDE_ID)) return;

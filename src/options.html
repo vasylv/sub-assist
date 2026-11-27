@@ -16,6 +16,8 @@
   legend { padding: 0 6px; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
   label { display: block; margin-bottom: 16px; }
   .label-text { display: block; font-weight: 600; margin-bottom: 4px; }
+  .key-link { float: right; font-weight: 400; font-size: 13px; color: #3b82f6; text-decoration: none; }
+  .key-link:hover { text-decoration: underline; }
   .help { display: block; color: #8a8a8f; font-size: 13px; margin-top: 4px; }
   input[type="text"], input[type="password"], input[type="number"], select, textarea {
     width: 100%; box-sizing: border-box; padding: 8px 10px; font: inherit;
@@ -66,7 +68,8 @@
       </label>
       <div data-provider="openai">
         <label>
-          <span class="label-text">OpenAI API key</span>
+          <span class="label-text">OpenAI API key
+            <a class="key-link" href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">Create or copy a key ↗</a></span>
           <input type="password" id="apiKey" autocomplete="off" spellcheck="false" placeholder="sk-…">
         </label>
         <label>
@@ -77,9 +80,9 @@
       </div>
       <div data-provider="gemini">
         <label>
-          <span class="label-text">Gemini API key</span>
+          <span class="label-text">Gemini API key
+            <a class="key-link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Create or copy a key ↗</a></span>
           <input type="password" id="geminiApiKey" autocomplete="off" spellcheck="false" placeholder="AIza…">
-          <span class="help">A key from Google AI Studio (aistudio.google.com/apikey).</span>
         </label>
         <label>
           <span class="label-text">Gemini model</span>

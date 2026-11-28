@@ -37,8 +37,9 @@ Nothing is sent anywhere while you simply watch. Pressing pause **is** the reque
 
 4. **`src/background.js`** (the service worker) asks the chosen model provider — OpenAI or
    Google Gemini, through Gemini's OpenAI-compatible endpoint — to explain the target lines,
-   with your CEFR level in the prompt and a strict JSON schema on the response. Answers
-   are cached in `chrome.storage.local` per `(videoId, cueIndex, level, model)`. The API
+   with your CEFR level in the prompt and a strict JSON schema on the response. Every
+   pause asks afresh; answers are not cached, since the same line is rarely paused on
+   twice. The API
    key lives only here — never in a script that shares a page with YouTube.
 
 ## Behaviour
@@ -73,7 +74,6 @@ detail (`[sub-assist]`).
 | --- | --- | --- |
 | Pause on an idiom | the whole path | the lines instantly, explanations ~1s later |
 | Pause, then immediately press play | the in-flight token | the card vanishes; no late answer |
-| Pause twice in the same place | the cache | second time is instant, `served from cache` |
 | Scrub the progress bar | the seek guard | no card |
 | Pause during an ad | the `ad-showing` guard | no card |
 | Paste a `/watch` URL and press Enter | the `ytInitialPlayerResponse` setter | `N lines — looking for expressions…` |
@@ -119,8 +119,8 @@ Each attempt logs why it gave out, so a video with no hints says which step fail
 ## Cost
 
 One small model request per pause — around ten seconds of dialogue, some 35 words —
-and nothing at all for a video you never pause. Each answer is cached per cue, so
-pausing in the same place again is free.
+and nothing at all for a video you never pause. Answers are not cached: pausing in
+the same place again asks again, which is rare enough not to be worth storing.
 
 This replaces an earlier design that sent the **whole transcript** up front and had the
 model guess which expressions were above your level. It was dropped because a model

@@ -56,8 +56,6 @@ document.getElementById("form").addEventListener("submit", async (event) => {
   // Only the form's own fields. normalise() fills in every setting, and writing
   // its default `enabled` back would switch the assistant on behind the popup.
   await chrome.storage.local.set(Object.fromEntries(FIELDS.map((k) => [k, values[k]])));
-  // The single free-form prompt this replaced; nothing reads it any more.
-  await chrome.storage.local.remove("prompt");
 
   // Show what was actually stored, so a clamped number does not silently
   // disagree with the box it was typed into.
@@ -77,26 +75,5 @@ for (const button of document.querySelectorAll("button.reset")) {
     box.focus();
   });
 }
-
-// Explanations are cached per video, cue, prompt and model, so they pile up.
-// This is the escape hatch for "that explanation looks wrong, ask again" —
-// and editing the prompt already asks again on its own, because the prompt is
-// part of the key.
-//
-// `scan:` and `transcript:` are swept too: they are left over from the version
-// that analysed the whole transcript up front, and nothing reads them now.
-document.getElementById("clear").addEventListener("click", async () => {
-  const all = await chrome.storage.local.get(null);
-  const stale = ["explain:", "scan:", "transcript:"];
-  const keys = Object.keys(all).filter((k) => stale.some((p) => k.startsWith(p)));
-  await chrome.storage.local.remove(keys);
-  const saved = el("saved");
-  saved.textContent = `Cleared ${keys.length}`;
-  saved.classList.add("show");
-  setTimeout(() => {
-    saved.classList.remove("show");
-    saved.textContent = "Saved";
-  }, 1600);
-});
 
 load();

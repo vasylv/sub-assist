@@ -13,7 +13,7 @@
 // header and answers in the same `choices[0].message.content` shape.
 
 import "./settings.js"; // publishes globalThis.EnHintSettings
-import { buildPrompt, cacheKeyFor, parseExplanation } from "./explain-core.js";
+import { buildPrompt, parseExplanation } from "./explain-core.js";
 
 // The reply is plain text in the prompt's OUTPUT format, not forced JSON: that
 // format covers every word of every target line, which a fixed short list of
@@ -29,13 +29,6 @@ async function explain({ videoId, index, target, context, auto }) {
   }
 
   const prompt = buildPrompt(settings, { target, context: context || [], auto });
-
-  // Model IDs do not overlap between the providers, so the model alone keeps
-  // their answers apart — and OpenAI answers cached before Gemini keep hitting.
-  const cacheKey = cacheKeyFor(videoId, index, prompt, provider.model);
-  const cached = (await chrome.storage.local.get(cacheKey))[cacheKey];
-  // An entry written by an older version holds a different shape; ask again.
-  if (typeof cached === "string") return { ok: true, ...parseExplanation(cached), cached: true };
 
   if (settings.logging) console.debug(`[sub-assist] explain via ${provider.label} (${provider.model})`, { videoId, index });
 
@@ -60,10 +53,7 @@ async function explain({ videoId, index, target, context, auto }) {
   const content = data?.choices?.[0]?.message?.content;
   if (!content) throw new Error(`${provider.label} returned no content`);
 
-  // The raw reply is what is cached, so a better parser later re-reads old
-  // answers instead of being stuck with how an earlier one split them.
-  await chrome.storage.local.set({ [cacheKey]: content });
-  return { ok: true, ...parseExplanation(content), cached: false };
+  return { ok: true, ...parseExplanation(content) };
 }
 
 // "off" on the toolbar icon while the assistant is disabled, so it is visible

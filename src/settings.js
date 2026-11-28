@@ -136,7 +136,7 @@ const EnHintSettings = (() => {
     return Math.min(max, Math.max(min, Math.round(n)));
   }
 
-  // Storage is shared with the explanation cache and can be edited by hand, so
+  // Storage can be edited by hand, or hold values from an older version, so
   // nothing read out of it is trusted. Callers get a usable value or the default
   // — never NaN, never an empty prompt section.
   function normalise(stored) {

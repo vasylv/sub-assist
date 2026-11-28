@@ -69,22 +69,6 @@ export function buildPrompt({ divideRules, groupingExamples, explainRules }, { t
   return PROMPT_TEMPLATE.replace(/\{\{(\w+)\}\}/g, (m, key) => (key in values ? values[key] : m));
 }
 
-// The cue index alone is not the question. A line still playing is sent cut off
-// at the playhead, so pausing early in it and pausing again at its end ask about
-// different words — and the second must not be answered out of the first one's
-// entry. The text itself goes into the key, condensed to keep the key short.
-export function fingerprint(text) {
-  let hash = 5381;
-  for (let i = 0; i < text.length; i++) hash = ((hash << 5) + hash + text.charCodeAt(i)) | 0;
-  return (hash >>> 0).toString(36);
-}
-
-// The whole prompt is fingerprinted: it already holds the viewer's rules, the
-// context window, the target lines and the captions note, so any of them
-// changing asks again.
-export const cacheKeyFor = (videoId, index, prompt, model) =>
-  `explain:${videoId}:${index}:${fingerprint(prompt)}:${model}`;
-
 // --- reading the reply --------------------------------------------------------
 // The model is asked for a flat list of "- “part” → explanation" rows, and
 // mostly keeps to it, but it is free text: bold markers, straight quotes,

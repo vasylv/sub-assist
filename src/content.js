@@ -304,7 +304,7 @@ async function explainAt(time) {
     return;
   }
   // These cues belong to the video named in the URL, or they belong to nothing.
-  // Without this, a stale transcript is explained AND cached under the wrong id.
+  // Without this, a stale transcript would be explained as this video's.
   if (videoId !== watchedVideoId()) {
     trace("paused, but the transcript is for another video", {
       transcript_for: videoId,
@@ -350,7 +350,7 @@ async function explainAt(time) {
     showError(result?.error || "explanation failed");
     return;
   }
-  trace(result.cached ? "  explained (from cache)" : "  explained", {
+  trace("  explained", {
     parts: result.parts ? result.parts.map((p) => p.part) : [],
     unparsed: result.raw !== undefined ? result.raw : null,
   });

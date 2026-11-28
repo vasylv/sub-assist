@@ -37,7 +37,7 @@ Requires a YouTube video with English subtitles (manual or auto-generated) and a
 Explains the English subtitles of a paused YouTube video to language learners.
 
 ## Permission justifications
-- **storage**: Saves the user's settings and API key, and caches explanations so the same lines are not requested twice.
+- **storage**: Saves the user's settings and API key. Nothing else is stored.
 - **Host permission https://www.youtube.com/***: Reads the subtitle track of the video being watched and shows the explanation card over the player.
 - **Host permission https://api.openai.com/***: Sends the paused subtitle lines to OpenAI when the user has chosen OpenAI, using the user's own key.
 - **Host permission https://generativelanguage.googleapis.com/***: Same, for Google Gemini.

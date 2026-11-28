@@ -17,26 +17,7 @@ const rules = {
 };
 const cue = (text) => ({ text });
 
-// --- cache key ---------------------------------------------------------------
-
-test("identical inputs give the same key", () => {
-  assert.equal(core.cacheKeyFor("vid", 3, "P", "gpt-4.1-mini"), core.cacheKeyFor("vid", 3, "P", "gpt-4.1-mini"));
-});
-
-test("changing the prompt or model changes the key", () => {
-  const k = core.cacheKeyFor("vid", 3, "P", "gpt-4.1-mini");
-  assert.notEqual(k, core.cacheKeyFor("vid", 3, "Q", "gpt-4.1-mini"));
-  assert.notEqual(k, core.cacheKeyFor("vid", 3, "P", "gpt-4.1"));
-});
-
-test("video and cue index are part of the key", () => {
-  const k = core.cacheKeyFor("vid", 3, "P", "m");
-  assert.ok(k.startsWith("explain:vid:3:"));
-  assert.notEqual(k, core.cacheKeyFor("other", 3, "P", "m"));
-  assert.notEqual(k, core.cacheKeyFor("vid", 4, "P", "m"));
-});
-
-test("rules, context and target all change the built prompt, so the key", () => {
+test("rules, context and target all change the built prompt", () => {
   const input = { target: [cue("went over")], context: [], auto: false };
   const p = core.buildPrompt(rules, input);
   assert.notEqual(p, core.buildPrompt(rules, { ...input, target: [cue("went over my head")] }));

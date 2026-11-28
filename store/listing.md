@@ -48,3 +48,4 @@ Explains the English subtitles of a paused YouTube video to language learners.
 - No data is sent to the developer. Nothing is sold, and nothing is used for anything other than the extension's single purpose.
 - Tick all three certifications.
 - A privacy policy URL is required because data goes to a third party (OpenAI or Google).
+- Policy text: `store/privacy-policy.md` (host it publicly, paste the URL).

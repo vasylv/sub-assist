@@ -18,10 +18,32 @@ const since = () => `+${((Date.now() - T0) / 1000).toFixed(2)}s`;
 const TRACE_CSS =
   "background:#6fcb98;color:#10241a;font-weight:700;padding:1px 5px;border-radius:3px";
 
-function trace(step, detail) {
-  const head = `%csub-assist ui%c ${since()}  ${step}`;
+// Off unless switched on in the options page. Storage answers a tick after
+// this file starts, and the first steps happen before that, so until the
+// setting is known lines are held rather than lost: printed if it turns out to
+// be on, dropped if off.
+let logging = null; // null: not read yet
+let held = [];
+
+function print(head, detail) {
   if (detail === undefined) console.log(head, TRACE_CSS, "");
   else console.log(head, TRACE_CSS, "", detail);
+}
+
+function trace(step, detail) {
+  if (logging === false) return;
+  const head = `%csub-assist ui%c ${since()}  ${step}`;
+  if (logging) print(head, detail);
+  else if (held.length < 300) held.push([head, detail]);
+}
+
+// Also tells the page world (src/main-world.js), which cannot read storage.
+function setLogging(on) {
+  window.postMessage({ source: CHANNEL, type: "logging", payload: { on } }, location.origin);
+  if (logging === on) return;
+  logging = on;
+  if (on) for (const [head, detail] of held) print(head, detail);
+  held = [];
 }
 
 const SILENCE_S = 10; // paused this long after the last line means nothing to explain
@@ -43,9 +65,10 @@ let fontSize = EnHintSettings.DEFAULTS.fontSize;
 // read, so switching back on works on the spot, mid-video.
 let enabled = EnHintSettings.DEFAULTS.enabled;
 
-const UI_KEYS = ["enabled", "targetLines", "contextSeconds", "fontFamily", "fontSize"];
+const UI_KEYS = ["enabled", "targetLines", "contextSeconds", "fontFamily", "fontSize", "logging"];
 
 function applySettings(s) {
+  setLogging(s.logging);
   const current = { enabled, targetLines, contextSeconds, fontFamily, fontSize };
   if (UI_KEYS.every((k) => s[k] === current[k])) return;
   const switched = s.enabled !== enabled;
@@ -138,9 +161,7 @@ window.addEventListener("message", (event) => {
     // Diagnostics: which way of reading the track failed, and why. These are
     // the lines to read first when a video comes back with no subtitles.
     case "attempt-failed":
-      console.warn(
-        `[sub-assist] transcript attempt "${msg.payload.label}" failed: ${msg.payload.message}`
-      );
+      trace(`transcript attempt "${msg.payload.label}" failed`, msg.payload.message);
       break;
     // "timedtext-seen" and "track-found" are still posted, but the page world
     // now traces both with more detail than this relay ever had. Repeating them
@@ -461,7 +482,6 @@ function showExplanation(result) {
     row.append(term, meaning);
     items.appendChild(row);
   }
-  if (result.cached) console.info("[sub-assist] served from cache");
 }
 
 function showError(message) {

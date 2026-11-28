@@ -2,12 +2,15 @@
 // src/settings.js, loaded ahead of this file — this only moves values between
 // storage and the form.
 
-const FIELDS = ["provider", "apiKey", "model", "geminiApiKey", "geminiModel", "divideRules", "groupingExamples", "explainRules", "targetLines", "contextSeconds", "fontFamily", "fontSize"];
+const FIELDS = ["provider", "apiKey", "model", "geminiApiKey", "geminiModel", "divideRules", "groupingExamples", "explainRules", "targetLines", "contextSeconds", "fontFamily", "fontSize", "logging"];
 const el = (id) => document.getElementById(id);
+// Checkboxes hold their value in `checked`, everything else in `value`.
+const getField = (key) => (el(key).type === "checkbox" ? el(key).checked : el(key).value);
+const setField = (key, v) => (el(key).type === "checkbox" ? (el(key).checked = v) : (el(key).value = v));
 
 async function load() {
   const values = await EnHintSettings.read();
-  for (const key of FIELDS) el(key).value = values[key];
+  for (const key of FIELDS) setField(key, values[key]);
   showProvider();
   preview();
 }
@@ -39,7 +42,7 @@ document.getElementById("form").addEventListener("submit", async (event) => {
   // Normalise before storing, not after reading: a number typed out of range,
   // or a prompt emptied by accident, is corrected once here rather than by
   // every reader forever.
-  const values = EnHintSettings.normalise(Object.fromEntries(FIELDS.map((k) => [k, el(k).value])));
+  const values = EnHintSettings.normalise(Object.fromEntries(FIELDS.map((k) => [k, getField(k)])));
   // A prompt section left at its default is stored empty, so the next version's
   // better default reaches this viewer too instead of being pinned at today's.
   const sectionDefaults = {

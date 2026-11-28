@@ -30,11 +30,34 @@
   const TRACE_CSS =
     "background:#ffd166;color:#1a1a1a;font-weight:700;padding:1px 5px;border-radius:3px";
 
-  function trace(step, detail) {
-    const head = `%csub-assist page%c ${since()}  ${step}`;
+  // Off unless switched on in the options page. This world cannot read
+  // extension storage, so src/content.js posts the setting over; until it
+  // arrives lines are held, then printed if it is on and dropped if off.
+  let logging = null; // null: not heard yet
+  let held = [];
+
+  function print(head, detail) {
     if (detail === undefined) console.log(head, TRACE_CSS, "");
     else console.log(head, TRACE_CSS, "", detail);
   }
+
+  function trace(step, detail) {
+    if (logging === false) return;
+    const head = `%csub-assist page%c ${since()}  ${step}`;
+    if (logging) print(head, detail);
+    else if (held.length < 300) held.push([head, detail]);
+  }
+
+  window.addEventListener("message", (event) => {
+    if (event.source !== window) return;
+    const msg = event.data;
+    if (!msg || msg.source !== CHANNEL || msg.type !== "logging") return;
+    const on = msg.payload?.on === true;
+    if (logging === on) return;
+    logging = on;
+    if (on) for (const [head, detail] of held) print(head, detail);
+    held = [];
+  });
 
   // The video the isolated world currently holds a transcript for, and the ids
   // being set up right now. `lastVideoId` was one slot doing both jobs, which is

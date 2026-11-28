@@ -37,7 +37,7 @@ async function explain({ videoId, index, target, context, auto }) {
   // An entry written by an older version holds a different shape; ask again.
   if (typeof cached === "string") return { ok: true, ...parseExplanation(cached), cached: true };
 
-  console.debug(`[sub-assist] explain via ${provider.label} (${provider.model})`, { videoId, index });
+  if (settings.logging) console.debug(`[sub-assist] explain via ${provider.label} (${provider.model})`, { videoId, index });
 
   const res = await fetch(provider.url, {
     method: "POST",

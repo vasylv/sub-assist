@@ -130,3 +130,11 @@ test("active() picks the chosen provider's own key, model and endpoint", () => {
   assert.deepEqual([g.label, g.apiKey, g.model], ["Gemini", "AIza-g", S.DEFAULTS.geminiModel]);
   assert.match(g.url, /generativelanguage\.googleapis\.com\/v1beta\/openai\/chat\/completions$/);
 });
+
+test("logging is off unless explicitly switched on", () => {
+  assert.equal(S.DEFAULTS.logging, false);
+  for (const v of [undefined, null, "", "true", 1, "yes", false]) {
+    assert.equal(S.normalise({ logging: v }).logging, false, String(v));
+  }
+  assert.equal(S.normalise({ logging: true }).logging, true);
+});

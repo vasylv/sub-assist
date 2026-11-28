@@ -104,6 +104,7 @@ const EnHintSettings = (() => {
     contextSeconds: 10, // extra dialogue sent so the model reads those lines right
     fontFamily: "", // CSS font-family for the card; empty means YouTube's own font
     fontSize: 13, // px, the card's body text; every other size on the card scales with it
+    logging: false, // step-by-step trace in the console, for debugging; off keeps it quiet
   };
 
   // Upper bounds are not taste. Every one of these lines is sent on every pause,
@@ -156,6 +157,8 @@ const EnHintSettings = (() => {
       // Only an explicit false turns it off: a missing or garbled value must not
       // silently switch the assistant off.
       enabled: s.enabled !== false,
+      // The opposite: only an explicit true turns the trace on.
+      logging: s.logging === true,
     };
   }
 
